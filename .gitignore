@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# Ephemeris downloads (fetched once at setup, not committed)
+data/ephe/*
+!data/ephe/.gitkeep
+
+# OS
+.DS_Store

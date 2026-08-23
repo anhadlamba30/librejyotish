@@ -1,0 +1,2 @@
+mcp>=2.0.0
+pyswisseph>=2.10
