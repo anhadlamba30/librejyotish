@@ -5,10 +5,17 @@ Lahiri ayanamsha by default, whole-sign houses). The calling LLM does synthesis
 and communication only. Every response carries an explicit conventions_used block.
 """
 
+import os
+import sys
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from mcp.server.mcpserver import MCPServer
+
+# Make `core` importable regardless of the current working directory (the MCP
+# client spawns us from an arbitrary cwd). server.py lives at the repo root,
+# alongside the core/ package, so add its own directory to sys.path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core import charts, dasha, ephemeris as ep, panchang
 from core.constants import SIGNS
