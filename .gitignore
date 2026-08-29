@@ -16,5 +16,9 @@ build/
 data/ephe/*
 !data/ephe/.gitkeep
 
+# Personal/local MCP config
+opencode.json
+.pi/
+
 # OS
 .DS_Store

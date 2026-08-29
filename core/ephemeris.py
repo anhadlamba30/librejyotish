@@ -8,6 +8,7 @@ used is always reported so callers can surface it in `conventions_used`.
 from __future__ import annotations
 
 import os
+import warnings
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -63,6 +64,13 @@ def init_ephemeris() -> str:
     _ephemeris_source = (
         "swiss_ephemeris_data_files" if has_files else "moshier_builtin"
     )
+    if not has_files:
+        warnings.warn(
+            "Swiss Ephemeris data files not found in data/ephe/. Falling back to "
+            "the less precise built-in Moshier ephemeris. Run "
+            "`scripts/download_ephe.py` once to enable full Swiss Ephemeris precision.",
+            stacklevel=2,
+        )
     return _ephemeris_source
 
 
@@ -79,6 +87,11 @@ def _flags(true_positions: bool = False) -> int:
     if true_positions:
         base |= swe.FLG_TRUEPOS
     return base
+
+
+def flags(true_positions: bool = False) -> int:
+    """Public accessor for the SWE calc flags matching the active source."""
+    return _flags(true_positions)
 
 
 def to_jd(naive_local: datetime, tz_name: str) -> float:

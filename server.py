@@ -17,8 +17,7 @@ from mcp.server.mcpserver import MCPServer
 # alongside the core/ package, so add its own directory to sys.path.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core import charts, dasha, ephemeris as ep, panchang
-from core.constants import SIGNS
+from core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 
 server = MCPServer(
     name="openjyotish",
@@ -222,10 +221,9 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
         natal = charts.build_natal_chart(naive_local, tz_name, lat, lon, aya,
                                          node_type=node_type,
                                          true_positions=true_positions)
-        lagna_sign_idx = ep.sign_of(natal["ascendant"]["longitude"])["index_one_based"]
-        moon_sign_idx = next(
-            ep.sign_of(p["longitude"])["index_one_based"]
-            for p in natal["planets"] if p["name"] == "Moon")
+        lagna_lon = natal["ascendant"]["longitude"]
+        moon_lon = next(
+            p["longitude"] for p in natal["planets"] if p["name"] == "Moon")
 
         as_of_jd = ep.to_jd(as_of_naive, tz_name)
         transit_positions = ep.planet_positions(as_of_jd, ayanamsha=aya,
@@ -245,8 +243,10 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
                 "nakshatra": ep.nakshatra_of(t["longitude"]),
                 "speed_deg_per_day": round(t["speed"], 6),
                 "retrograde": t["retrograde"],
-                "house_from_natal_lagna": (sign_info["index_one_based"] - lagna_sign_idx) % 12 + 1,
-                "house_from_natal_moon": (sign_info["index_one_based"] - moon_sign_idx) % 12 + 1,
+                "house_from_natal_lagna": charts.house_from_lagna(
+                    t["longitude"], lagna_lon),
+                "house_from_natal_moon": charts.house_from_lagna(
+                    t["longitude"], moon_lon),
             })
 
         return {
@@ -272,8 +272,8 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
                              "from natal Lagna sign / natal Moon sign"),
                 },
                 "natal_reference": {
-                    "lagna_sign": ep.sign_of(natal["ascendant"]["longitude"])["name"],
-                    "moon_sign": SIGNS[moon_sign_idx],
+                    "lagna_sign": ep.sign_of(lagna_lon)["name"],
+                    "moon_sign": ep.sign_of(moon_lon)["name"],
                 },
                 "interpretation": "none — raw gochara positions only (v2 rules corpus)",
             },
@@ -281,6 +281,124 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
         }
     except (ValueError, TypeError) as exc:
         return _error("get_current_transits", exc)
+
+
+@server.tool()
+def get_eclipses(datetime_local: str, timezone: str, latitude: float,
+                 longitude: float, as_of_datetime_local: str | None = None,
+                 count: int = 4, ayanamsha: str = "lahiri",
+                 node_type: str = "true", true_positions: bool = False) -> dict:
+    """Next solar/lunar eclipses with exact event times and the sidereal
+    eclipse point.
+
+    The eclipse point is the Moon's longitude for a lunar eclipse and the Sun's
+    for a solar one. When the birth chart is supplied (datetime_local, timezone,
+    latitude, longitude), each event also reports the point's whole-sign house
+    from the natal Lagna and from the natal Moon (Chandra lagna).
+
+    as_of_datetime_local defaults to now in `timezone`; count: 1-20. The birth
+    latitude/longitude anchor the natal houses only — eclipses are global events.
+    """
+    try:
+        naive_local, tz_name, lat, lon, aya = _common_inputs(
+            datetime_local, timezone, latitude, longitude, ayanamsha)
+        if not 1 <= int(count) <= 20:
+            raise ValueError("count must be between 1 and 20")
+        count = int(count)
+        if as_of_datetime_local is None:
+            as_of_naive = datetime.now(ZoneInfo(tz_name)).replace(tzinfo=None)
+        else:
+            as_of_naive = _parse_datetime(as_of_datetime_local, "as_of_datetime_local")
+
+        natal = charts.build_natal_chart(naive_local, tz_name, lat, lon, aya,
+                                         node_type=node_type,
+                                         true_positions=true_positions)
+        lagna_lon = natal["ascendant"]["longitude"]
+        moon_lon = next(
+            p["longitude"] for p in natal["planets"] if p["name"] == "Moon")
+
+        result = eclipses.next_eclipses(as_of_naive, tz_name, ayanamsha=aya,
+                                        count=count, node_type=node_type,
+                                        true_positions=true_positions)
+        as_of_jd = ep.to_jd(as_of_naive, tz_name)
+        aya_key, _, aya_label = ep.resolve_ayanamsha(aya)
+
+        for ev in result["events"]:
+            lon_ev = ev["point"]["longitude"]
+            ev["house_from_natal_lagna"] = charts.house_from_lagna(lon_ev, lagna_lon)
+            ev["house_from_natal_moon"] = charts.house_from_lagna(lon_ev, moon_lon)
+
+        return {
+            "input": {
+                "birth_datetime_local": naive_local.isoformat(),
+                "timezone": tz_name,
+                "birth_latitude": lat,
+                "birth_longitude": lon,
+                "as_of_local": as_of_naive.isoformat(),
+                "as_of_is_default_now": as_of_datetime_local is None,
+                "count_requested": count,
+            },
+            "julian_day_ut_as_of": round(as_of_jd, 8),
+            "ephemeris_source": ep.ephemeris_source(),
+            "conventions_used": {
+                "zodiac": "sidereal",
+                "ayanamsha": {"key": aya_key, "name": aya_label,
+                              "value_degrees": round(ep.ayanamsha_value(as_of_jd, aya_key), 6)},
+                "node_type": node_type,
+                "position_type": "true" if true_positions else "apparent",
+                "event_times": "overall-first contact, maximum (greatest), last "
+                              "contact — UT plus local time",
+                "eclipse_types": {
+                    "solar": "from SWE sol_eclipse_when_glob return flag "
+                             "(total/annular/partial/annular-total)",
+                    "lunar": "from SWE lun_eclipse_how umbral magnitude "
+                             "(>=1 total, >0 partial, else penumbral)",
+                },
+                "house_system": {
+                    "key": "whole_sign",
+                    "name": "eclipse point house = point sign counted from natal "
+                            "Lagna sign / natal Moon sign",
+                },
+                "natal_reference": {
+                    "lagna_sign": ep.sign_of(lagna_lon)["name"],
+                    "moon_sign": ep.sign_of(moon_lon)["name"],
+                },
+                "interpretation": "none — raw eclipse geometry only",
+            },
+            **result,
+        }
+    except (ValueError, TypeError) as exc:
+        return _error("get_eclipses", exc)
+
+
+@server.tool()
+def geocode_location(place: str, country: str | None = None,
+                     limit: int = 5) -> dict:
+    """Offline place-string lookup for use with the computation tools.
+
+    Resolves a place like 'Nashik, India' into candidate latitude/longitude/
+    IANA-timezone tuples. The computation tools expect numeric latitude and
+    longitude; pass the top candidate's values to them.
+
+    Matching is deterministic (exact name -> asciiname -> alternate name ->
+    prefix), ranked by population, against the bundled GeoNames-derived
+    gazetteer of cities >= 20k population. `ambiguous: true` means the string
+    does not uniquely resolve — confirm the intended place with the user.
+    """
+    try:
+        result = geocode.geocode(place if isinstance(place, str) else None,
+                                 country=country, limit=limit)
+        result["conventions_used"] = {
+            "data_source": "GeoNames cities1000 (CC-BY) reduced to populated "
+                           "places >= 20k population; strictly offline — no network",
+            "attribution": "GeoNames data is licensed under Creative Commons "
+                           "Attribution 4.0; see data/gazetteer/README.md",
+            "resolution": "deterministic tiered matching, population-ranked; "
+                          "not an astronomical computation",
+        }
+        return result
+    except (ValueError, TypeError) as exc:
+        return _error("geocode_location", exc)
 
 
 if __name__ == "__main__":

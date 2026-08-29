@@ -30,11 +30,14 @@ Locked for v1 and reported in every response's `conventions_used` block:
 | `get_ashtakavarga` | birth input | Bhinnashtakavarga per planet (with prastara), Sarvashtakavarga totals |
 | `get_shadbala` | birth input | six-fold strength: sthana, dig, kala, cheshta, naisargika, drik; virupas/rupas vs required |
 | `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon (raw positions only) |
+| `get_eclipses` | birth input + optional as-of moment + `count` | next solar/lunar eclipses: exact event times, type, eclipse point (sidereal sign/nakshatra) and its house from natal Lagna & Moon |
+| `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit's numbers as the `latitude`/`longitude` inputs above) |
 
 All tools are stateless: JSON-style arguments in, structured dict out. Errors
-come back as `{"error": {"type", "message"}}` payloads.
+come back as `{"error": {"type", "message"}}` payloads. Every response includes
+an explicit `conventions_used` block.
 
-## Quickstart
+## Setup
 
 Requires Python ≥ 3.11.
 
@@ -42,6 +45,21 @@ Requires Python ≥ 3.11.
 conda env create -f environment.yml   # or your own venv with the two deps
 conda run -n openjyotish python server.py
 ```
+
+One-time data setup:
+
+```bash
+conda run -n openjyotish python scripts/download_ephe.py    # high-precision Swiss Ephemeris files -> data/ephe/
+conda run -n openjyotish python scripts/build_gazetteer.py  # (re)build the bundled geocoding dataset from GeoNames
+```
+
+The gazetteer (`data/gazetteer/cities.csv`, GeoNames CC-BY) is committed so
+`geocode_location` is fully offline out of the box. The `.se1` ephemeris files
+are **not** committed (license restricts redistribution — see
+`data/ephe/` documentation); `scripts/download_ephe.py` fetches the standard
+1800–2399 set once. Without them the server falls back to Swiss Ephemeris'
+built-in Moshier model and warns loudly, reporting the source in
+`ephemeris_source`.
 
 The server speaks MCP over stdio. Example client config:
 
@@ -55,10 +73,6 @@ The server speaks MCP over stdio. Example client config:
   }
 }
 ```
-
-Ephemeris files (`data/ephe/*.se1`) are bundled; without them the server falls
-back to Swiss Ephemeris' built-in Moshier model and says so in
-`ephemeris_source`.
 
 ## Validation
 

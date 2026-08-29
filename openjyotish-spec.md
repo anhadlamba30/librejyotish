@@ -29,11 +29,11 @@ The model is responsible for *synthesis and communication only*. This server is 
 ## 4. Tech Stack (proposed)
 
 - **Language:** Python 3.11+
-- **MCP framework:** official `mcp` Python SDK
-- **Astronomical core:** `pyswisseph` (Swiss Ephemeris bindings) — industry standard precision
-  - *Licensing note:* Swiss Ephemeris is AGPL/commercial dual-licensed. Since this project is fully open-source and free, AGPL is compatible — but it does mean the repo must carry AGPL forward. Alternative: use a Skyfield + JPL DE421-based approach (as `jyotishganit` does) to allow a more permissive license, at the cost of some historical/far-future date range coverage. **Decision needed before v1 lock — flagging for your input.**
-- **Higher-level chart/dasha logic:** build directly on `pyswisseph`, or fork/wrap an existing permissively-licensed library (`jyotishganit`, `dashaflow`, `PyJHora`) rather than reimplementing dasha/varga math from scratch. Recommendation: start by wrapping one of these, benchmark against known reference charts, replace pieces only if discrepancies found.
-- **Packaging:** pip-installable, ephemeris data bundled or auto-downloaded once on first run (cached locally after).
+- **MCP framework:** official `mcp` Python SDK (v2 `MCPServer` API)
+- **Astronomical core:** `pyswisseph` (Swiss Ephemeris bindings) — industry standard precision. **Decided:** AGPL path (see §4 decision note). High-precision `.se1` files are fetched once at setup by `scripts/download_ephe.py` into `data/ephe/` (gitignored, not redistributed — Swiss Ephemeris license restricts redistribution); the server falls back to the built-in Moshier model — loudly, via `warnings.warn` + `ephemeris_source` — only if the files are absent. This removes the silent precision fallback that undermines determinism.
+- **Higher-level chart/dasha logic:** built directly on `pyswisseph` (no wrapper library); PyJHora is used only as a dev-time oracle in `scripts/crosscheck_*.py` and never imported by `core/` or `server.py`.
+- **Geocoding:** bundled offline gazetteer (`data/gazetteer/cities.csv`) + `core/geocode.py`; built by `scripts/build_gazetteer.py` from GeoNames `cities1000`. No network at query time.
+- **Packaging:** pip-installable, stateless; ephemeris data downloaded once at setup (see §7 repo layout).
 
 ## 5. Tool Definitions (v1)
 
@@ -76,6 +76,22 @@ All tools take a birth/event datetime + location (or a `chart_id` if we add char
 **Input:** natal chart input + "as of" date (defaults to now)
 **Output:** current planetary positions + their position relative to the natal chart (houses/signs from Lagna and from Moon). **Raw positions only — no favorable/unfavorable judgment (that's v2).**
 
+### 5.8 `get_eclipses`
+**Input:** natal chart input + "as of" date (defaults to now) + `count` (1–20, default 4)
+**Output:** the next `count` solar/lunar eclipses as global events:
+- exact event times — time-of-maximum/greatest and first/last contact — in UT and local time;
+- eclipse type: solar from SWE `sol_eclipse_when_glob`'s return flag (total/annular/partial/annular-total); lunar from SWE `lun_eclipse_how`'s umbral magnitude (≥1 total, >0 partial, else penumbral). The lunar return flag is unreliable in current pyswisseph builds and is *not* used;
+- lunar umbral/penumbral magnitudes and Saros series/member;
+- the sidereal eclipse point — Moon for a lunar eclipse, Sun for a solar one — with sign, degree, and nakshatra, plus its whole-sign house from natal Lagna and from natal Moon.
+
+**Design notes:** a time-window search, distinct from the snapshots returned by `get_current_transits`; the birth lat/long anchor houses only (eclipses are global). A future `get_astrological_events` aggregator is a thin wrapper over this, not a redesign. No eclipse-to-interpretation mapping (that's v2/v3).
+
+### 5.9 `geocode_location` (helper — not astronomical)
+**Input:** `place` string (e.g. `"Nashik, India"`), optional `country`, optional `limit`
+**Output:** ranked candidate `{name, country_code, admin1_code, latitude, longitude, timezone, population}` tuples, a `matched_tier` (exact name → asciiname → alternate name → prefix) and an `ambiguous` flag.
+
+**Design notes:** offline and deterministic, backed by the committed GeoNames-derived gazetteer (`data/gazetteer/cities.csv`, populated places ≥ 20k population, CC-BY — see `data/gazetteer/README.md`). No network at query time (§3). `ambiguous: true` (alias match, prefix match, or region filter dropped) is the caller's cue to confirm the intended place before feeding the coordinates to the computation tools. The seven computation tools keep their numeric `latitude`/`longitude` contract.
+
 ## 6. Non-Functional Requirements
 
 - Every tool response includes a `conventions_used` block (ayanamsha, house system, dasha system) so the calling LLM never has to guess what assumptions were made.
@@ -89,25 +105,31 @@ All tools take a birth/event datetime + location (or a `chart_id` if we add char
 openjyotish/
 ├── server.py              # MCP server entrypoint, tool registration
 ├── core/
-│   ├── ephemeris.py        # swisseph wrapper, ayanamsha handling
-│   ├── charts.py            # natal + divisional chart logic
-│   ├── dasha.py              # vimshottari dasha tree
+│   ├── ephemeris.py       # swisseph wrapper, ayanamsha handling, ephe source detection
+│   ├── charts.py          # natal + divisional chart logic, whole-sign house helper
+│   ├── dasha.py           # vimshottari dasha tree
 │   ├── panchang.py
 │   ├── ashtakavarga.py
-│   └── shadbala.py
+│   ├── shadbala.py
+│   ├── eclipses.py        # sol/lun eclipse search: times, type, point, saros
+│   └── geocode.py         # offline gazetteer resolution (helper)
+├── scripts/
+│   ├── download_ephe.py   # one-time fetch of .se1 files (network only at setup)
+│   └── build_gazetteer.py # regenerate data/gazetteer/cities.csv from GeoNames
 ├── tests/
-│   └── reference_charts/    # known-correct test fixtures
+│   └── reference_charts/  # known-correct test fixtures
 ├── data/
-│   └── ephe/                 # bundled or downloaded ephemeris files
-├── LICENSE                    # AGPL (pending stack decision, see §4)
+│   ├── ephe/              # downloaded ephemeris files (gitignored, run download_ephe.py)
+│   └── gazetteer/         # committed GeoNames-derived cities.csv + attribution README
+├── LICENSE                # AGPL-3.0-or-later
 └── README.md
 ```
 
 ## 8. Open Decisions Before Build
 
-1. **Swiss Ephemeris (AGPL, more precise/wider range) vs. Skyfield+JPL DE421 (permissive license, narrower range).**
-2. **Library to wrap first** — `jyotishganit`, `dashaflow`, or `PyJHora` — for fastest path to a working v1.
-3. **House system default** — whole-sign is standard for Vedic, but confirm before locking as the unannounced default.
+1. **Swiss Ephemeris (AGPL, more precise/wider range) vs. Skyfield+JPL DE421 (permissive license, narrower range).** *Resolved:* Swiss Ephemeris (pyswisseph) with the AGPL path; `.se1` files fetched at setup rather than redistributed. *(Open:* whether to offer a later Skyfield backend for permissive-license deployments.)
+2. **House system default** — whole-sign is standard for Vedic, and is confirmed as v1's default (see §5.7 conventions; Placidus still used internally for Shadbala's Dig Bana).
+3. **Eclipse handling (proposed then accepted):** dedicated `get_eclipses` tool rather than folding into `get_current_transits`; lunar type via umbral magnitude (`lun_eclipse_how`), never the pyswisseph lunar return flag.
 
 ## 9. Roadmap
 

@@ -191,8 +191,17 @@ def resolve_varga(code: str) -> VargaSpec:
 # ---------------------------------------------------------------------------
 
 
+def house_from_lagna(body_lon: float, anchor_lon: float) -> int:
+    """Whole-sign house: (body sign index - anchor sign index) mod 12 + 1.
+
+    `anchor_lon` is usually the natal Lagna, but the same rule measures from
+    any anchor (natal Moon for Chandra-lagna placements, etc.).
+    """
+    return (int(normalize_deg(body_lon) // 30) - int(normalize_deg(anchor_lon) // 30)) % 12 + 1
+
+
 def _house_from_lagna(body_lon: float, lagna_lon: float) -> int:
-    return (int(normalize_deg(body_lon) // 30) - int(normalize_deg(lagna_lon) // 30)) % 12 + 1
+    return house_from_lagna(body_lon, lagna_lon)
 
 
 def combustion_of(planet: str, planets: dict) -> bool:
