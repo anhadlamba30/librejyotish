@@ -68,7 +68,7 @@ def test_count_obeys_limit():
 def test_server_get_eclipses_houses():
     import server as srv_mod
     r = srv_mod.get_eclipses(
-        "2002-03-10T06:30:00", "Asia/Kolkata", 19.9975, 73.79096,
+        "2002-03-10T06:30:00", 19.9975, 73.79096, "Asia/Kolkata",
         as_of_datetime_local="2026-08-01T00:00:00", count=1)
     assert "error" not in r
     assert r["ephemeris_source"] == "swiss_ephemeris_data_files"

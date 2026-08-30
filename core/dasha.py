@@ -111,6 +111,32 @@ def _strip_internal(node):
     return node
 
 
+def _filter_periods_by_date(periods: list, start_date: datetime | None,
+                            end_date: datetime | None, tz_name: str) -> list:
+    """Filter periods to those overlapping with [start_date, end_date]."""
+    start_jd = ep.to_jd(start_date, tz_name) if start_date else None
+    end_jd = ep.to_jd(end_date, tz_name) if end_date else None
+
+    def overlaps(p: dict) -> bool:
+        s = p["_start_jd"]
+        e = p["_end_jd"]
+        if start_jd is not None and e <= start_jd:
+            return False
+        if end_jd is not None and s >= end_jd:
+            return False
+        return True
+
+    filtered = []
+    for p in periods:
+        if overlaps(p):
+            new_p = dict(p)
+            if "sub_periods" in new_p:
+                new_p["sub_periods"] = _filter_periods_by_date(
+                    new_p["sub_periods"], start_date, end_date, tz_name)
+            filtered.append(new_p)
+    return filtered
+
+
 def build_vimshottari_dasha(
     naive_local: datetime,
     tz_name: str,
@@ -119,15 +145,24 @@ def build_vimshottari_dasha(
     ayanamsha: str | None = "lahiri",
     node_type: str = "true",
     true_positions: bool = False,
-    include_pratyantardasha: bool = True,
+    levels: int = 3,
     reference_local: datetime | None = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ) -> dict:
-    """Full Vimshottari tree from the natal Moon, plus optional current chain.
+    """Vimshottari tree from the natal Moon, plus optional current chain.
+
+    `levels` controls nesting depth: 1 = mahadasha only, 2 = + antardasha,
+    3 = + pratyantardasha, 4 = + sookshma. Lower levels shrink the response for
+    callers that only need the coarse periods.
 
     Periods are emitted as their full absolute windows (a period running at
     birth shows its complete span, including time before birth); the entries
     running at birth additionally carry a `running_at_birth` marker.
     """
+    if levels not in (1, 2, 3, 4):
+        raise ValueError("levels must be one of 1 (mahadasha), 2 (+antardasha), "
+                         "3 (+pratyantardasha), 4 (+sookshma)")
     aya_key, _, aya_label = ep.resolve_ayanamsha(ayanamsha)
     jd = ep.to_jd(naive_local, tz_name)
     positions = ep.planet_positions(jd, ayanamsha=aya_key, node_type=node_type,
@@ -137,7 +172,7 @@ def build_vimshottari_dasha(
     starting_lord = ep.nakshatra_of(moon_lon)["lord"]
 
     balance_years = VIMSHOTTARI_YEARS[starting_lord] * (1.0 - fraction)
-    md_depth = 2 if include_pratyantardasha else 1
+    md_depth = levels - 1
 
     # Absolute start of the mahadasha currently running at birth:
     # it began (full_years - balance_years) before the birth moment.
@@ -195,5 +230,8 @@ def build_vimshottari_dasha(
 
     if reference_local is not None:
         tree["current_periods"] = find_current_period(tree, reference_local, tz_name)
+
+    if start_date is not None or end_date is not None:
+        tree["mahadashas"] = _filter_periods_by_date(tree["mahadashas"], start_date, end_date, tz_name)
 
     return _strip_internal(tree)

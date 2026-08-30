@@ -102,7 +102,10 @@ def _search(q: str, rows: list[dict], country_code: str | None,
     top = candidates[0]
     exact_unique = matched_tier in ("exact_name", "exact_ascii") and len(candidates) == 1
     same_place_alias = len(candidates) > 1 and all(
-        _fold(c["asciiname"]) == _fold(top["asciiname"]) for c in candidates)
+        _fold(c["asciiname"]) == _fold(top["asciiname"])
+        and c.get("admin1_code") == top.get("admin1_code")
+        and c.get("country_code") == top.get("country_code")
+        for c in candidates)
     ambiguous = not (exact_unique or same_place_alias) or (matched_tier == "prefix_name")
 
     return {
@@ -129,6 +132,29 @@ def _search(q: str, rows: list[dict], country_code: str | None,
             for c in candidates
         ],
     }
+
+
+def nearest_timezone(latitude: float, longitude: float) -> str:
+    """Best-effort IANA timezone for a lat/lon, from the nearest gazetteer city.
+
+    This maps a *point* to the nearest bundled city's zone. IANA zones are
+    region polygons, not points, so near timezone borders this can pick the
+    wrong side. Treat the result as a hint that a caller may override.
+    """
+    if not -90.0 <= latitude <= 90.0 or not -180.0 <= longitude <= 180.0:
+        raise ValueError("latitude/longitude out of range")
+    rows = _load()
+    best = None
+    best_d2 = float("inf")
+    for r in rows:
+        # Equirectangular-ish approximation: scale longitude by cos(lat).
+        dx = (r["longitude"] - longitude) * (3.141592653589793 / 180.0)
+        dy = (r["latitude"] - latitude) * (3.141592653589793 / 180.0)
+        d2 = dx * dx + dy * dy
+        if d2 < best_d2:
+            best_d2 = d2
+            best = r["timezone"]
+    return best
 
 
 def geocode(query: str, country: str | None = None, limit: int = 5) -> dict:

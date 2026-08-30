@@ -7,7 +7,7 @@ and communication only. Every response carries an explicit conventions_used bloc
 
 import os
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from mcp.server.mcpserver import MCPServer
@@ -59,18 +59,42 @@ def _validate_tz(tz_name: str) -> str:
     return tz_name
 
 
-def _common_inputs(datetime_local: str, timezone: str, latitude: float,
+def _resolve_timezone(timezone: str | None, latitude: float,
+                      longitude: float) -> tuple[str, list[str]]:
+    """Return (tz_name, warnings). Derives timezone from coords when omitted and
+    cross-checks against the gazetteer-derived zone when explicitly supplied.
+    """
+    warnings: list[str] = []
+    derived = geocode.nearest_timezone(latitude, longitude)
+    if timezone is None:
+        return derived, [
+            f"timezone auto-derived from the nearest gazetteer city as "
+            f"{derived!r}; pass `timezone` explicitly to override."
+        ]
+    tz_name = _validate_tz(timezone)
+    if derived and derived != tz_name:
+        warnings.append(
+            f"supplied timezone {tz_name!r} does not match the gazetteer-derived "
+            f"zone {derived!r} for these coordinates; the clock time is read in "
+            f"{tz_name!r} but houses are computed at the given lat/lon."
+        )
+    return tz_name, warnings
+
+
+def _common_inputs(datetime_local: str, timezone: str | None, latitude: float,
                    longitude: float, ayanamsha: str | None):
     if not -90.0 <= latitude <= 90.0:
         raise ValueError("latitude must be within [-90, 90]")
     if not -180.0 <= longitude <= 180.0:
         raise ValueError("longitude must be within [-180, 180]")
+    tz_name, tz_warnings = _resolve_timezone(timezone, float(latitude), float(longitude))
     return (
         _parse_datetime(datetime_local),
-        _validate_tz(timezone),
+        tz_name,
         float(latitude),
         float(longitude),
         ayanamsha,
+        tz_warnings,
     )
 
 
@@ -79,31 +103,35 @@ def _error(tool: str, exc: Exception) -> dict:
 
 
 @server.tool()
-def get_natal_chart(datetime_local: str, timezone: str, latitude: float,
-                    longitude: float, ayanamsha: str = "lahiri",
+def get_natal_chart(datetime_local: str, latitude: float, longitude: float,
+                    timezone: str | None = None, ayanamsha: str = "lahiri",
                     node_type: str = "true", true_positions: bool = False) -> dict:
     """Sidereal natal chart: ascendant, planetary longitudes/signs/nakshatras/
     whole-sign houses, retrograde and combustion flags, dignities.
 
     datetime_local: ISO-8601 naive local birth datetime, e.g. '1994-03-21T14:32:00'.
-    timezone: IANA zone name, e.g. 'Asia/Kolkata'. ayanamsha: 'lahiri' (default).
+    timezone: IANA zone name, e.g. 'Asia/Kolkata'; when omitted it is derived
+      from the coordinates. ayanamsha: 'lahiri' (default).
     node_type: 'true' or 'mean'. true_positions: true for true-position planets.
     """
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         if node_type not in ("true", "mean"):
             raise ValueError("node_type must be 'true' or 'mean'")
-        return charts.build_natal_chart(naive_local, tz_name, lat, lon, aya,
-                                        node_type=node_type,
-                                        true_positions=true_positions)
+        result = charts.build_natal_chart(naive_local, tz_name, lat, lon, aya,
+                                          node_type=node_type,
+                                          true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_natal_chart", exc)
 
 
 @server.tool()
-def get_divisional_chart(datetime_local: str, timezone: str, latitude: float,
-                         longitude: float, division: str,
+def get_divisional_chart(datetime_local: str, latitude: float, longitude: float,
+                         division: str, timezone: str | None = None,
                          ayanamsha: str = "lahiri", node_type: str = "true",
                          true_positions: bool = False) -> dict:
     """Divisional (varga) chart D1..D60 for the same birth input, e.g. division='D9'.
@@ -111,97 +139,129 @@ def get_divisional_chart(datetime_local: str, timezone: str, latitude: float,
     Returns each body's varga sign and house counted whole-sign from the varga Lagna.
     """
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
-        return charts.build_divisional_chart(naive_local, tz_name, lat, lon,
-                                             division.upper(), aya,
-                                             node_type=node_type,
-                                             true_positions=true_positions)
+        result = charts.build_divisional_chart(naive_local, tz_name, lat, lon,
+                                               division.upper(), aya,
+                                               node_type=node_type,
+                                               true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_divisional_chart", exc)
 
 
 @server.tool()
-def get_vimshottari_dasha(datetime_local: str, timezone: str, latitude: float,
-                          longitude: float, reference_datetime_local: str | None = None,
-                          ayanamsha: str = "lahiri", node_type: str = "true",
+def get_vimshottari_dasha(datetime_local: str, latitude: float, longitude: float,
+                          timezone: str | None = None,
+                          reference_datetime_local: str | None = None,
+                          start_date: str | None = None,
+                          end_date: str | None = None,
+                          levels: int = 3, ayanamsha: str = "lahiri",
+                          node_type: str = "true",
                           true_positions: bool = False) -> dict:
-    """Full Vimshottari dasha tree: mahadasha -> antardasha -> pratyantardasha
-    with start/end dates. If reference_datetime_local is given, each level is
-    annotated with the period running at that moment.
+    """Vimshottari dasha tree: mahadasha -> antardasha -> pratyantardasha (and
+    optionally sookshma) with start/end dates. If reference_datetime_local is
+    given, `current_periods` reports the chain running at that moment.
+
+    levels: 1 = mahadasha only, 2 = + antardasha, 3 = + pratyantardasha,
+      4 = + sookshma. Lower levels shrink the response.
+    start_date, end_date: optional ISO-8601 date strings (e.g. '2025-01-01')
+      to filter the returned periods to those overlapping the range.
     """
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         ref = None
         if reference_datetime_local is not None:
             ref = _parse_datetime(reference_datetime_local, "reference_datetime_local")
-        return dasha.build_vimshottari_dasha(naive_local, tz_name, lat, lon, aya,
-                                             node_type=node_type,
-                                             true_positions=true_positions,
-                                             include_pratyantardasha=True,
-                                             reference_local=ref)
+        start = _parse_datetime(start_date, "start_date") if start_date else None
+        end = _parse_datetime(end_date, "end_date") if end_date else None
+        result = dasha.build_vimshottari_dasha(naive_local, tz_name, lat, lon, aya,
+                                               node_type=node_type,
+                                               true_positions=true_positions,
+                                               levels=levels,
+                                               reference_local=ref,
+                                               start_date=start,
+                                               end_date=end)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_vimshottari_dasha", exc)
 
 
 @server.tool()
-def get_panchang(date_local: str, timezone: str, latitude: float,
-                 longitude: float, ayanamsha: str = "lahiri",
+def get_panchang(date_local: str, latitude: float, longitude: float,
+                 timezone: str | None = None, ayanamsha: str = "lahiri",
                  true_positions: bool = False) -> dict:
     """Panchang for a civil date at a location: tithi, vara, nakshatra, yoga,
     karana, sunrise/sunset.
 
     date_local: ISO date string 'YYYY-MM-DD' (civil day in the given timezone).
+    timezone: IANA zone name; when omitted it is derived from the coordinates.
     """
     try:
-        _validate_tz(timezone)
+        tz_name, tz_warnings = _resolve_timezone(timezone, float(latitude), float(longitude))
         try:
             d = date.fromisoformat(date_local.strip())
         except (TypeError, ValueError) as exc:
             raise ValueError(f"date_local must be 'YYYY-MM-DD': {exc}") from exc
-        return panchang.build_panchang(d, timezone, float(latitude), float(longitude),
-                                       ayanamsha, true_positions=true_positions)
+        result = panchang.build_panchang(d, tz_name, float(latitude), float(longitude),
+                                         ayanamsha, true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_panchang", exc)
 
 
 @server.tool()
-def get_ashtakavarga(datetime_local: str, timezone: str, latitude: float,
-                     longitude: float, ayanamsha: str = "lahiri",
+def get_ashtakavarga(datetime_local: str, latitude: float, longitude: float,
+                     timezone: str | None = None,
+                     ayanamsha: str = "lahiri",
                      node_type: str = "true", true_positions: bool = False) -> dict:
     """Ashtakavarga bindu tables: Bhinnashtakavarga per planet plus
     Sarvashtakavarga totals across the 12 signs."""
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         from core.ashtakavarga import build_ashtakavarga
-        return build_ashtakavarga(naive_local, tz_name, lat, lon, aya,
-                                  node_type=node_type, true_positions=true_positions)
+        result = build_ashtakavarga(naive_local, tz_name, lat, lon, aya,
+                                    node_type=node_type, true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_ashtakavarga", exc)
 
 
 @server.tool()
-def get_shadbala(datetime_local: str, timezone: str, latitude: float,
-                 longitude: float, ayanamsha: str = "lahiri",
+def get_shadbala(datetime_local: str, latitude: float, longitude: float,
+                 timezone: str | None = None,
+                 ayanamsha: str = "lahiri",
                  node_type: str = "true", true_positions: bool = False) -> dict:
     """Shadbala six-fold strength per planet (sthana, dig, kala, cheshta,
     naisargika, drik) with component breakdowns, totals in virupas and rupas,
     and required-strength comparison."""
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         from core.shadbala import build_shadbala
-        return build_shadbala(naive_local, tz_name, lat, lon, aya,
-                              node_type=node_type, true_positions=true_positions)
+        result = build_shadbala(naive_local, tz_name, lat, lon, aya,
+                                node_type=node_type, true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
     except (ValueError, TypeError) as exc:
         return _error("get_shadbala", exc)
 
 
 @server.tool()
-def get_current_transits(datetime_local: str, timezone: str, latitude: float,
-                         longitude: float, as_of_datetime_local: str | None = None,
+def get_current_transits(datetime_local: str, latitude: float, longitude: float,
+                         timezone: str | None = None,
+                         as_of_datetime_local: str | None = None,
                          ayanamsha: str = "lahiri", node_type: str = "true",
                          true_positions: bool = False) -> dict:
     """Current planetary transits measured against the natal chart: each planet's
@@ -209,14 +269,28 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
     lagna), raw positions only — no favorable/unfavorable judgment.
 
     as_of_datetime_local defaults to now in `timezone`.
+    timezone: IANA zone name; when omitted it is derived from the coordinates.
     """
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         if as_of_datetime_local is None:
             as_of_naive = datetime.now(ZoneInfo(tz_name)).replace(tzinfo=None)
         else:
             as_of_naive = _parse_datetime(as_of_datetime_local, "as_of_datetime_local")
+
+        warnings = list(tz_warnings)
+        if as_of_naive < naive_local:
+            warnings.append(
+                "as_of is before the birth datetime; transit house positions are "
+                "still computed but predate the native's birth."
+            )
+        elif (as_of_naive - naive_local) <= timedelta(days=45):
+            warnings.append(
+                "as_of is within ~45 days of the birth datetime; if you intended a "
+                "current-date transit you may have passed the birth input as the "
+                "as_of date. Confirm as_of_datetime_local is the date you want."
+            )
 
         natal = charts.build_natal_chart(naive_local, tz_name, lat, lon, aya,
                                          node_type=node_type,
@@ -258,6 +332,7 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
                 "as_of_local": as_of_naive.isoformat(),
                 "as_of_is_default_now": as_of_datetime_local is None,
             },
+            "warnings": warnings,
             "julian_day_ut_as_of": round(as_of_jd, 8),
             "ephemeris_source": ep.ephemeris_source(),
             "conventions_used": {
@@ -284,8 +359,9 @@ def get_current_transits(datetime_local: str, timezone: str, latitude: float,
 
 
 @server.tool()
-def get_eclipses(datetime_local: str, timezone: str, latitude: float,
-                 longitude: float, as_of_datetime_local: str | None = None,
+def get_eclipses(datetime_local: str, latitude: float, longitude: float,
+                 timezone: str | None = None,
+                 as_of_datetime_local: str | None = None,
                  count: int = 4, ayanamsha: str = "lahiri",
                  node_type: str = "true", true_positions: bool = False) -> dict:
     """Next solar/lunar eclipses with exact event times and the sidereal
@@ -298,9 +374,10 @@ def get_eclipses(datetime_local: str, timezone: str, latitude: float,
 
     as_of_datetime_local defaults to now in `timezone`; count: 1-20. The birth
     latitude/longitude anchor the natal houses only — eclipses are global events.
+    timezone: IANA zone name; when omitted it is derived from the coordinates.
     """
     try:
-        naive_local, tz_name, lat, lon, aya = _common_inputs(
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
         if not 1 <= int(count) <= 20:
             raise ValueError("count must be between 1 and 20")
@@ -338,6 +415,7 @@ def get_eclipses(datetime_local: str, timezone: str, latitude: float,
                 "as_of_is_default_now": as_of_datetime_local is None,
                 "count_requested": count,
             },
+            "warnings": tz_warnings,
             "julian_day_ut_as_of": round(as_of_jd, 8),
             "ephemeris_source": ep.ephemeris_source(),
             "conventions_used": {

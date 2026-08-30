@@ -94,6 +94,34 @@ def test_dasha_current_period(label):
     assert chain == case["dasha_current_at_reference"]
 
 
+def test_dasha_levels_control_depth():
+    naive, tz, lat, lon = _naive(FIXTURES[next(iter(FIXTURES))])
+    md0 = dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=1)["mahadashas"]
+    assert all("sub_periods" not in m for m in md0)
+    md1 = dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=2)["mahadashas"]
+    assert all("sub_periods" in m for m in md1)
+    assert all("sub_periods" not in a for m in md1 for a in m["sub_periods"])
+    md2 = dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=3)["mahadashas"]
+    assert all("sub_periods" in a for m in md2 for a in m["sub_periods"])
+
+
+def test_dasha_invalid_levels_rejected():
+    naive, tz, lat, lon = _naive(FIXTURES[next(iter(FIXTURES))])
+    with pytest.raises(ValueError):
+        dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=9)
+
+
+def test_server_dasha_levels_via_tool():
+    import server as srv_mod
+    r = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata", levels=1)
+    assert "error" not in r
+    assert all("sub_periods" not in m for m in r["mahadashas"])
+    rbad = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata", levels=0)
+    assert "error" in rbad and rbad["error"]["type"] == "ValueError"
+
+
 @pytest.mark.parametrize("label", sorted(FIXTURES))
 def test_panchang(label):
     case = FIXTURES[label]
@@ -158,5 +186,30 @@ def test_server_registers_all_tools():
 def test_server_tool_error_paths():
     import server as srv_mod
     result = srv_mod.get_natal_chart(
-        "not-a-date", "Asia/Kolkata", 28.6, 77.2)
+        "not-a-date", 28.6, 77.2, "Asia/Kolkata")
     assert "error" in result and result["error"]["type"] == "ValueError"
+
+
+def test_server_timezone_derived_when_omitted():
+    import server as srv_mod
+    # No timezone -> derived from coords (Nashik -> Asia/Kolkata).
+    r = srv_mod.get_natal_chart("1994-03-21T14:30:00", 19.99727, 73.79096)
+    assert "error" not in r
+    assert r["input"]["timezone"] == "Asia/Kolkata"
+    assert any("auto-derived" in w for w in r["warnings"])
+
+
+def test_server_timezone_match_no_warning():
+    import server as srv_mod
+    r = srv_mod.get_natal_chart(
+        "1994-03-21T14:30:00", 19.99727, 73.79096, "Asia/Kolkata")
+    assert "error" not in r
+    assert r.get("warnings") is None
+
+
+def test_server_timezone_mismatch_warns():
+    import server as srv_mod
+    # NYC coords declared as Asia/Kolkata -> mismatch warning, still computed.
+    r = srv_mod.get_natal_chart("1994-03-21T14:30:00", 40.71, -74.0, "Asia/Kolkata")
+    assert "error" not in r
+    assert any("does not match" in w for w in r["warnings"])

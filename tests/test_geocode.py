@@ -53,6 +53,18 @@ def test_no_match():
     assert r["candidates"] == []
 
 
+def test_same_name_multicandidate_is_ambiguous():
+    # Distinct cities sharing a name (Springfield MO/MA/IL/OR/OH...) must be
+    # flagged ambiguous, not collapsed into one "unambiguous exact match".
+    r = geocode.geocode("Springfield")
+    assert r["resolved"]
+    assert r["ambiguous"]
+    assert len(r["candidates"]) > 1
+    # All genuinely distinct locations: admin1/country must differ.
+    keys = {(c["admin1_code"], c["country_code"]) for c in r["candidates"]}
+    assert len(keys) > 1
+
+
 def test_place_filter_and_limit():
     r = geocode.geocode("New York", country="US", limit=2)
     assert r["resolved"]
@@ -65,3 +77,10 @@ def test_invalid_inputs():
         geocode.geocode("")
     with pytest.raises(ValueError):
         geocode.geocode("Paris", limit=99)
+
+
+def test_nearest_timezone_from_coords():
+    assert geocode.nearest_timezone(19.997, 73.790) == "Asia/Kolkata"
+    assert geocode.nearest_timezone(40.7, -74.0).startswith("America/")
+    with pytest.raises(ValueError):
+        geocode.nearest_timezone(100.0, 0.0)

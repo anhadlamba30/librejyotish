@@ -163,7 +163,7 @@ def planet_positions(
     for name, body in bodies.items():
         pos, _rf = swe.calc_ut(jd, body, flags)
         lon, speed = pos[0], pos[3]
-        retro = speed < 0 and name != "Ketu"
+        retro = (speed < 0) if name not in ("Rahu", "Ketu") else True
         out[name] = {
             "longitude": normalize_deg(lon),
             "speed": speed,
