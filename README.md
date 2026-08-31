@@ -47,9 +47,9 @@ Once the tools are connected, paste any of these straight into Claude. Each one 
 
 > “I was born 1994-03-21 14:32 in Nashik, India. Tell me my Lagna, nakshatra, D9, and current Mahadasha — and what they mean in plain language.”
 
-**💞 Comparing people / synastry.**
+**💞 Love & compatibility.**
 
-> “Compare the charts of these three: A born 1988-06-14 09:20 in New York, B born 1991-11-02 18:45 in London, C born 1985-02-27 05:10 in Sydney. What do the Moon signs and D9s have in common?”
+> “How compatible are me and my partner? I’m born 1988-06-14 09:20 in New York, they’re born 1991-11-02 18:45 in London. Compare our Moons, D9 charts, and current dashas for marriage, communication, and long-term fit.”
 
 **📅 Auspicious-timing screening.**
 
