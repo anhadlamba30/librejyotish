@@ -136,6 +136,12 @@ conda run -n openjyotish python -m pytest tests/ -q
 
 ---
 
+## Acknowledgments
+
+- **Swiss Ephemeris** — [Astrodienst / pyswisseph](https://pypi.org/project/pyswisseph/): the astronomical engine behind every calculation.
+- **PyJHora** — [naturalstupid/PyJHora](https://github.com/naturalstupid/PyJHora): independent reference used to validate the Vedic math (dev-only, not imported in production).
+- **GeoNames** — [GeoNames](https://www.geonames.org): city data powering the offline `geocode_location` gazetteer.
+
 ## License
 
 AGPL-3.0-or-later. Swiss Ephemeris is AGPL/commercial dual-licensed; this project uses it under the AGPL and carries the license forward. Hosting the MCP server as a network service triggers AGPL’s network clause (source disclosure to users of the service).
