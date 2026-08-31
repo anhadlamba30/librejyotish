@@ -1,22 +1,25 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/anhadlamba30/openjyotish/main/assets/logo.png" width="180" alt="OpenJyotish logo">
+  <img src="https://raw.githubusercontent.com/anhadlamba30/openjyotish/master/assets/logo.png" width="180" alt="OpenJyotish logo">
 </p>
 
 <h1 align="center">OpenJyotish</h1>
 
 <p align="center">
-  Deterministic Vedic astrology for Muse — numbers from Swiss Ephemeris, words from Muse.
+  Accurate Vedic astrology calculations as an MCP server
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/v/openjyotish" alt="PyPI"></a>
-  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/pyversions/openjyotish" alt="Python"></a>
-  <a href="https://github.com/anhadlamba30/openjyotish/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/openjyotish" alt="License"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-2.0-blue" alt="MCP"></a>
+  <a href="https://github.com/anhadlamba30/openjyotish/blob/master/LICENSE"><img src="https://img.shields.io/github/license/anhadlamba30/openjyotish" alt="License"></a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python">
+  <!-- PyPI badges — uncomment after first publish
+  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/v/openjyotish" alt="PyPI"></a>
+  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/pyversions/openjyotish" alt="PyPI Python"></a>
+  -->
 </p>
 
 <p align="center">
-  <b>Layer 1 only: pure computation, no interpretation.</b> Every number comes from Swiss Ephemeris via <a href="https://pypi.org/project/pyswisseph/">pyswisseph</a>; Muse does synthesis only — it never computes or guesses astronomy.
+  Open source, offline and deterministic — Swiss Ephemeris based sidereal positions, houses, dashas and panchang. No interpretations, no hallucinations — just the math.
 </p>
 
 ---
@@ -50,7 +53,7 @@ Restart Claude, look for the 🔧 wrench. Ask:
 
 > “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
 
-Muse calls `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha` behind the scenes and answers in plain language, citing `conventions_used`.
+The assistant calls `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha` behind the scenes and answers in plain language, citing `conventions_used`.
 
 ---
 
