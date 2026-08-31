@@ -22,9 +22,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anomalyco/openjyotish"
-Repository = "https://github.com/anomalyco/openjyotish"
-Issues = "https://github.com/anomalyco/openjyotish/issues"
+Homepage = "https://github.com/anhadlamba30/openjyotish"
+Repository = "https://github.com/anhadlamba30/openjyotish"
+Issues = "https://github.com/anhadlamba30/openjyotish/issues"
 
 [project.scripts]
 openjyotish = "openjyotish.server:main"

@@ -5,7 +5,7 @@
 <h1 align="center">OpenJyotish</h1>
 
 <p align="center">
-  Accurate Vedic astrology calculations as an MCP server
+  Deterministic Vedic astrology calculations as an MCP server
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  Open source, offline and deterministic — Swiss Ephemeris based sidereal positions, houses, dashas and panchang. No interpretations, no hallucinations — just the math.
+  Sidereal positions, houses, dashas and panchang, computed from Swiss Ephemeris. Computation only — no interpretive rules, no predictions.
 </p>
 
 ---
@@ -53,7 +53,7 @@ Restart Claude, look for the 🔧 wrench. Ask:
 
 > “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
 
-The assistant calls `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha` behind the scenes and answers in plain language, citing `conventions_used`.
+This resolves through `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`, and the assistant answers in plain language, citing `conventions_used`.
 
 ---
 
