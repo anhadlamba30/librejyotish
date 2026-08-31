@@ -7,7 +7,7 @@ Run all Python/pytest commands via: `conda run -n openjyotish python ...`
 Never use system pip/python directly; never use uv venvs here.
 
 ## Project
-Deterministic Vedic astrology MCP server (see openjyotish-spec.md).
+Deterministic Vedic astrology MCP server.
 Stack locked for v1: pyswisseph (Swiss Ephemeris, AGPL), logic built direct on it,
 whole-sign houses, Lahiri ayanamsha default. Every tool response must include an
 explicit `conventions_used` block.
