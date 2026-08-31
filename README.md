@@ -41,38 +41,75 @@ an explicit `conventions_used` block.
 
 Requires Python ≥ 3.11.
 
+**Quickstart (recommended) — no clone needed:**
+
+```bash
+uvx openjyotish --version      # prints 0.1.0
+uvx openjyotish                # runs the MCP server over stdio
+# or install permanently:
+uv tool install openjyotish
+openjyotish --version
+```
+
+`uvx` fetches the wheel from PyPI (once) and runs it isolated — no conda
+setup, no ephemeris download. The wheel bundles the Swiss Ephemeris
+`sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and the GeoNames gazetteer
+(`cities.csv`, CC-BY) so startup is instant and offline.
+
+**From source (development):**
+
 ```bash
 conda env create -f environment.yml   # or your own venv with the two deps
-conda run -n openjyotish python server.py
+conda run -n openjyotish python -m openjyotish.server   # or python server.py (shim)
+# alternative without conda after `pip install -e .`:
+pip install -e .
+openjyotish --version
+openjyotish
 ```
 
-One-time data setup:
+Ephemeris and gazetteer are bundled in `openjyotish/data/` inside the wheel
+under AGPL (Swiss Ephemeris dual-licensed AGPL/commercial; this project
+distributes the `.se1` files under AGPL and carries the license forward).
+If the files are absent, the server falls back to the built-in Moshier model
+and warns loudly, reporting the source in `ephemeris_source` — but the wheel
+ships them, so this only matters for stripped installs.
+
+To rebuild the gazetteer from GeoNames or refresh the `.se1` files:
 
 ```bash
-conda run -n openjyotish python scripts/download_ephe.py    # high-precision Swiss Ephemeris files -> data/ephe/
-conda run -n openjyotish python scripts/build_gazetteer.py  # (re)build the bundled geocoding dataset from GeoNames
+conda run -n openjyotish python scripts/build_gazetteer.py
+conda run -n openjyotish python scripts/download_ephe.py  # refreshes openjyotish/data/ephe/
 ```
 
-The gazetteer (`data/gazetteer/cities.csv`, GeoNames CC-BY) is committed so
-`geocode_location` is fully offline out of the box. The `.se1` ephemeris files
-are **not** committed (license restricts redistribution — see
-`data/ephe/` documentation); `scripts/download_ephe.py` fetches the standard
-1800–2399 set once. Without them the server falls back to Swiss Ephemeris'
-built-in Moshier model and warns loudly, reporting the source in
-`ephemeris_source`.
+**MCP client config:**
 
-The server speaks MCP over stdio. Example client config:
+With `uvx` (recommended — no path needed):
+
+```json
+{
+  "mcpServers": {
+    "openjyotish": {
+      "command": "uvx",
+      "args": ["openjyotish"]
+    }
+  }
+}
+```
+
+From source / conda:
 
 ```json
 {
   "mcpServers": {
     "openjyotish": {
       "command": "conda",
-      "args": ["run", "-n", "openjyotish", "python", "/path/to/openjyotish/server.py"]
+      "args": ["run", "-n", "openjyotish", "python", "-m", "openjyotish.server"]
     }
   }
 }
 ```
+
+Legacy `python /path/to/server.py` still works via a shim at the repo root.
 
 ## Validation
 
@@ -98,4 +135,10 @@ conda run -n openjyotish python -m pytest tests/ -q
 ## License
 
 AGPL-3.0-or-later. Swiss Ephemeris is AGPL/commercial dual-licensed; this
-project uses it under the AGPL and carries the license forward.
+project uses it under the AGPL and carries the license forward. Hosting the
+MCP server as a network service triggers AGPL's network clause (source
+disclosure to users of the service).
+
+Data attributions: Swiss Ephemeris `.se1` files © Astrodienst / Alois
+Treindl (AGPL); GeoNames `cities.csv` © GeoNames (CC BY 4.0) — see
+`openjyotish/data/gazetteer/README.md`.

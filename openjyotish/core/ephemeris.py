@@ -21,16 +21,11 @@ from .constants import NAKSHATRAS, NAKSHATRA_LORD_CYCLE, SIGNS, normalize_deg
 # They are shipped in the wheel under AGPL; Moshier fallback is used only when
 # files are absent (outside wheel or stripped install).
 def _default_ephe_path() -> Path:
-    # Prefer in-package resource (works after `pip install`); fallback to
-    # repo-root data/ephe for local dev with top-level `core/`.
     try:
         from importlib.resources import files
-        pkg_path = Path(str(files("openjyotish.data.ephe")))
-        if (pkg_path / "sepl_18.se1").exists() or pkg_path.exists():
-            return pkg_path
+        return Path(str(files("openjyotish.data.ephe")))
     except Exception:
-        pass
-    return Path(__file__).resolve().parent.parent / "data" / "ephe"
+        return Path(__file__).resolve().parent.parent / "data" / "ephe"
 
 
 EPHE_PATH = _default_ephe_path()

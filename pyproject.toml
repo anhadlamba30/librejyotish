@@ -4,12 +4,30 @@ version = "0.1.0"
 description = "Deterministic Vedic (Jyotish) astrology computations exposed as an MCP server"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "AGPL-3.0-or-later" }
+license = "AGPL-3.0-or-later"
 keywords = ["astrology", "jyotish", "vedic", "mcp", "ephemeris"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "mcp>=2.0.0",
     "pyswisseph>=2.10",
 ]
+
+[project.urls]
+Homepage = "https://github.com/anomalyco/openjyotish"
+Repository = "https://github.com/anomalyco/openjyotish"
+Issues = "https://github.com/anomalyco/openjyotish/issues"
+
+[project.scripts]
+openjyotish = "openjyotish.server:main"
 
 [dependency-groups]
 dev = [
@@ -21,7 +39,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["core", "data"]
+packages = ["openjyotish"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

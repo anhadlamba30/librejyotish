@@ -22,12 +22,9 @@ from pathlib import Path
 def _default_gazetteer() -> Path:
     try:
         from importlib.resources import files
-        pkg = Path(str(files("openjyotish.data.gazetteer") / "cities.csv"))
-        if pkg.is_file():
-            return pkg
+        return Path(str(files("openjyotish.data.gazetteer") / "cities.csv"))
     except Exception:
-        pass
-    return Path(__file__).resolve().parent.parent / "data" / "gazetteer" / "cities.csv"
+        return Path(__file__).resolve().parent.parent / "data" / "gazetteer" / "cities.csv"
 
 
 GAZETTEER = _default_gazetteer()

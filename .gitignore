@@ -12,9 +12,12 @@ build/
 .mypy_cache/
 .coverage
 
-# Ephemeris downloads (fetched once at setup, not committed)
+# Ephemeris — legacy top-level data/ephe/ is gitignored for backwards-compat
+# local installs; the canonical bundled files live at openjyotish/data/ephe/
+# and ARE tracked (shipped in the wheel under AGPL).
 data/ephe/*
 !data/ephe/.gitkeep
+!openjyotish/data/ephe/*.se1
 
 # Personal/local MCP config
 opencode.json
