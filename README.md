@@ -100,6 +100,15 @@ All tools are stateless: JSON in, structured dict out. Errors are `{"error": {"t
 
 `batch` is the answer to "can't I just loop client-side?": a 20-chart comparison costs **one** model round-trip instead of 20, and a single bad input fails as an `error` entry without discarding the other 19 results — so you keep the deterministic server-side shared state (ephemeris files, gazetteer, ayanamsha resolution) and avoid N round trips of your own.
 
+### Defensive by default
+
+The server greets a sketchy input with a warning rather than a silently wrong chart. It flags an internally inconsistent date/time/location (e.g. a timezone that doesn't match the coordinates, or coordinates that resolve to a place 500+ km away, producing a sunset before sunrise) and tells you exactly what to fix. Use the top `geocode_location` candidate's numbers and strip stray guesses — the tools will catch the rest.
+
+### Limitations
+
+- **Gazetteer covers cities ≥ 20k population.** `geocode_location` resolves against a generously-sourced but deliberately-shipped-down GeoNames subset, so obscure small towns and villages won't resolve — and in this domain a lot of birthplaces are villages. If an exact hit isn't found, the tool reports `resolved: false` with the searched string echoed back; treat that as "resolve the coordinates yourself and pass them directly" rather than a bug.
+- **Ephemeris spans 1800–2399** (the bundled Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` files). Births outside that range fall back to the built-in Moshier model, which is reported in `ephemeris_source`.
+
 ---
 
 ## Setup alternatives
