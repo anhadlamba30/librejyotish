@@ -26,16 +26,6 @@
 
 ## 30-second quickstart
 
-No clone, no conda, no download — `uvx` fetches the wheel from PyPI once and runs isolated. The wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY) so startup is instant and offline.
-
-```bash
-uvx openjyotish --version      # prints 0.1.0
-uvx openjyotish                # runs the MCP server over stdio
-# or install permanently:
-uv tool install openjyotish
-openjyotish --version
-```
-
 **Add to Claude Desktop** — `Settings → Developer → Edit Config` → `claude_desktop_config.json`:
 
 ```json
@@ -49,11 +39,21 @@ openjyotish --version
 }
 ```
 
-Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the chat input. Click it to confirm the server's tools are loaded, then ask:
+`uvx` fetches the wheel from PyPI once and runs isolated; the wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY), so startup is instant and offline. Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the chat input. Click it to confirm the server's tools are loaded, then ask:
 
 > “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
 
 This resolves through `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`, and the assistant answers in plain language, citing `conventions_used`.
+
+Or install the CLI directly:
+
+```bash
+uvx openjyotish --version      # prints 0.1.0
+uvx openjyotish                # runs the MCP server over stdio
+# or install permanently:
+uv tool install openjyotish
+openjyotish --version
+```
 
 ---
 
