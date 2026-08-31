@@ -43,37 +43,37 @@ Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the cha
 
 Once the tools are connected, paste any of these straight into Claude. Each one resolves through the server’s tools:
 
-**Natal reading.**
+**✨ Natal reading.**
 
 > “I was born 1994-03-21 14:32 in Nashik, India. Tell me my Lagna, nakshatra, D9, and current Mahadasha — and what they mean in plain language.”
 
 Resolves via `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`.
 
-**Comparing people / synastry.**
+**💞 Comparing people / synastry.**
 
 > “Compare the charts of these three: A born 1988-06-14 09:20 in New York, B born 1991-11-02 18:45 in London, C born 1985-02-27 05:10 in Sydney. What do the Moon signs and D9s have in common?”
 
 A single `batch` call runs all three charts plus divisional charts at once, with per-chart results kept separate.
 
-**Auspicious-timing screening.**
+**📅 Auspicious-timing screening.**
 
 > “I’m picking a date to launch. Give me the next three auspicious windows this year from the panchang.”
 
 `get_panchang` across candidate dates — or one `batch` over a week of dates to compare at a glance.
 
-**Eclipse hitting your Moon.**
+**🌑 Eclipse hitting your Moon.**
 
 > “Show me the eclipse that will land on my natal Moon, and when.”
 
 `get_natal_chart` (for the Moon’s house) → `get_eclipses`.
 
-**Strength of a planet.**
+**💪 Strength of a planet.**
 
 > “Where in my chart is Saturn strongest for me as a writer?”
 
 `get_natal_chart` → `get_shadbala`, then let the model explain the `rupas` vs. required-strength comparison.
 
-**Life-arc timing.**
+**⏳ Life-arc timing.**
 
 > “Walk me through the big timing cycles in my life for the next 20 years.”
 
