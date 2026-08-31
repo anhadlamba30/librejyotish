@@ -55,19 +55,43 @@ openjyotish --version
 
 ## Example prompts
 
-Once the tools are connected, paste any of these straight into Claude. Each one resolves through the server’s tools — the text in **bold** is you; the model handles the rest.
+Once the tools are connected, paste any of these straight into Claude. Each one resolves through the server’s tools:
 
-- **“I was born 1994-03-21 14:32 in Nashik, India. Tell me my Lagna, nakshatra, D9, and current Mahadasha — and what they mean in plain language.”** → `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`.
+**Natal reading.**
 
-- **“Compare the charts of these three: A born 1988-06-14 09:20 in New York, B born 1991-11-02 18:45 in London, C born 1985-02-27 05:10 in Sydney. What do the Moon signs and D9s have in common?”** → a single `batch` runs all three charts + divisional charts in one call.
+> “I was born 1994-03-21 14:32 in Nashik, India. Tell me my Lagna, nakshatra, D9, and current Mahadasha — and what they mean in plain language.”
 
-- **“I’m picking a date to launch. Give me the next three auspicious windows this year from the panchang.”** → `get_panchang` across candidate dates (or a `batch` over a week of dates).
+Resolves via `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`.
 
-- **“Show me the eclipse that will land on my natal Moon, and when.”** → `get_natal_chart` (for the Moon’s house) → `get_eclipses`.
+**Comparing people / synastry.**
 
-- **“Where in my chart is Saturn strongest for me as a writer?”** → `get_natal_chart` → `get_shadbala`, then let the model explain the `rupas` vs. required-strength comparison.
+> “Compare the charts of these three: A born 1988-06-14 09:20 in New York, B born 1991-11-02 18:45 in London, C born 1985-02-27 05:10 in Sydney. What do the Moon signs and D9s have in common?”
 
-- **“Walk me through the big timing cycles in my life for the next 20 years.”** → `get_vimshottari_dasha` with `levels=4` and a date-range filter.
+A single `batch` call runs all three charts plus divisional charts at once, with per-chart results kept separate.
+
+**Auspicious-timing screening.**
+
+> “I’m picking a date to launch. Give me the next three auspicious windows this year from the panchang.”
+
+`get_panchang` across candidate dates — or one `batch` over a week of dates to compare at a glance.
+
+**Eclipse hitting your Moon.**
+
+> “Show me the eclipse that will land on my natal Moon, and when.”
+
+`get_natal_chart` (for the Moon’s house) → `get_eclipses`.
+
+**Strength of a planet.**
+
+> “Where in my chart is Saturn strongest for me as a writer?”
+
+`get_natal_chart` → `get_shadbala`, then let the model explain the `rupas` vs. required-strength comparison.
+
+**Life-arc timing.**
+
+> “Walk me through the big timing cycles in my life for the next 20 years.”
+
+`get_vimshottari_dasha` with `levels=4` and a date-range filter.
 
 > Every answer carries a `conventions_used` block (sidereal/Lahiri, whole-sign houses, Vimshottari). Ask the model to “quote the `conventions_used`” if you want the exact assumptions stated back to you.
 
