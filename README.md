@@ -37,21 +37,7 @@
 }
 ```
 
-`uvx` fetches the wheel from PyPI once and runs isolated; the wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY), so startup is instant and offline. Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the chat input. Click it to confirm the server's tools are loaded, then ask:
-
-> “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
-
-This resolves through `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`, and the assistant answers in plain language, citing `conventions_used`.
-
-Or install the CLI directly:
-
-```bash
-uvx openjyotish --version      # prints 0.1.1
-uvx openjyotish                # runs the MCP server over stdio
-# or install permanently:
-uv tool install openjyotish
-openjyotish --version
-```
+Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the chat input. Click it to confirm the server's tools are loaded. Then head to [Example prompts](#example-prompts) for things to try.
 
 ## Example prompts
 
@@ -130,6 +116,20 @@ All tools are stateless: JSON in, structured dict out. Errors are `{"error": {"t
 ---
 
 ## Setup alternatives
+
+**Install the CLI directly (any machine):**
+
+```bash
+uvx openjyotish --version      # prints 0.1.1
+uvx openjyotish                # runs the MCP server over stdio
+# or install permanently:
+uv tool install openjyotish
+openjyotish --version
+```
+
+**How the `uvx` install works.** `uvx` fetches the wheel from PyPI once and runs isolated; the wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY), so startup is instant and offline — no separate download step, no network at query time.
+
+A full first-claude query resolves through `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`, and the assistant answers in plain language, citing `conventions_used`.
 
 **From source (development):**
 
