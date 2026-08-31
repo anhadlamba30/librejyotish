@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  Sidereal positions, houses, dashas and panchang, computed from Swiss Ephemeris. Computation only — no interpretive rules, no predictions.
+  Open-source and free. Sidereal positions, houses, dashas and panchang, computed from Swiss Ephemeris.
 </p>
 
 ---
