@@ -17,13 +17,13 @@ import swisseph as swe
 
 from .constants import NAKSHATRAS, NAKSHATRA_LORD_CYCLE, SIGNS, normalize_deg
 
-# Bundled Swiss Ephemeris files live inside the package (openjyotish/data/ephe).
+# Bundled Swiss Ephemeris files live inside the package (librejyotish/data/ephe).
 # They are shipped in the wheel under AGPL; Moshier fallback is used only when
 # files are absent (outside wheel or stripped install).
 def _default_ephe_path() -> Path:
     try:
         from importlib.resources import files
-        return Path(str(files("openjyotish.data.ephe")))
+        return Path(str(files("librejyotish.data.ephe")))
     except Exception:
         return Path(__file__).resolve().parent.parent / "data" / "ephe"
 

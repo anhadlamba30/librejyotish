@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from openjyotish.core import ephemeris as ep
+from librejyotish.core import ephemeris as ep
 
 ep.init_ephemeris()
 

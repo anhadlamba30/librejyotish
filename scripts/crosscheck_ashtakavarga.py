@@ -5,9 +5,9 @@ from datetime import datetime
 sys.path.insert(0, ".")
 import swisseph as swe
 
-from openjyotish.core import ephemeris as ep
-from openjyotish.core.ashtakavarga import build_ashtakavarga, BAV_PLANETS
-from openjyotish.core.constants import SIGNS
+from librejyotish.core import ephemeris as ep
+from librejyotish.core.ashtakavarga import build_ashtakavarga, BAV_PLANETS
+from librejyotish.core.constants import SIGNS
 
 ep.init_ephemeris()
 swe.set_ephe_path(ep._resolve_ephe_path())
@@ -39,7 +39,7 @@ def main():
         jd_pj = jd_ut + tz_off / 24.0
         # Build their chart string directly from my natal-chart output
         # (positions already verified identical in prior crosschecks).
-        from openjyotish.core.charts import build_natal_chart
+        from librejyotish.core.charts import build_natal_chart
         chart = build_natal_chart(naive_local, tzn, lat, lon)
         sign_of_planet = {}
         lst = [""] * 12

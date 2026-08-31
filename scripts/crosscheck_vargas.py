@@ -1,7 +1,7 @@
-"""Dev-only cross-check of OpenJyotish varga rules against PyJHora.
+"""Dev-only cross-check of LibreJyotish varga rules against PyJHora.
 
 Requires: pip install PyJHora (dev dependency, NOT used by the server).
-Run: conda run -n openjyotish python scripts/crosscheck_vargas.py
+Run: conda run -n librejyotish python scripts/crosscheck_vargas.py
 """
 
 import sys
@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from openjyotish.core import charts as ch
-from openjyotish.core import ephemeris as ep
+from librejyotish.core import charts as ch
+from librejyotish.core import ephemeris as ep
 from jhora.horoscope.chart import charts as pj
 
 DT = datetime(1994, 3, 21, 14, 32)

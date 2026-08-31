@@ -22,7 +22,7 @@ https://www.geonames.org.
 ## Regenerating
 
 ```bash
-conda run -n openjyotish python scripts/build_gazetteer.py
+conda run -n librejyotish python scripts/build_gazetteer.py
 ```
 
 Pass `--zip path/to/cities1000.zip` to reuse a local copy instead of a fresh
@@ -33,6 +33,6 @@ network download. The downloadable source dataset is
 ## Why commit it?
 
 The project is local-first (no network at query time, see
-`openjyotish-spec.md`). Committing the reduced CSV keeps `geocode_location`
+`librejyotish-spec.md`). Committing the reduced CSV keeps `geocode_location`
 fully offline in restricted MCP deployments; the ignored `data/ephe/*`
 files are the only large binaries fetched at setup time.

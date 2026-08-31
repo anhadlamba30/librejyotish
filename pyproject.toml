@@ -1,5 +1,5 @@
 [project]
-name = "openjyotish"
+name = "librejyotish"
 version = "0.1.1"
 description = "Deterministic Vedic (Jyotish) astrology computations exposed as an MCP server"
 readme = "README.md"
@@ -22,12 +22,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anhadlamba30/openjyotish"
-Repository = "https://github.com/anhadlamba30/openjyotish"
-Issues = "https://github.com/anhadlamba30/openjyotish/issues"
+Homepage = "https://github.com/anhadlamba30/librejyotish"
+Repository = "https://github.com/anhadlamba30/librejyotish"
+Issues = "https://github.com/anhadlamba30/librejyotish/issues"
 
 [project.scripts]
-openjyotish = "openjyotish.server:main"
+librejyotish = "librejyotish.server:main"
 
 [dependency-groups]
 dev = [
@@ -39,7 +39,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["openjyotish"]
+packages = ["librejyotish"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

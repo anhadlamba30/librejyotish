@@ -1,11 +1,11 @@
 """Shim for backwards compatibility: `python server.py` at repo root.
 
-The canonical server lives at `openjyotish.server`; this wrapper delegates
-so existing `conda run -n openjyotish python server.py` invocations keep working.
+The canonical server lives at `librejyotish.server`; this wrapper delegates
+so existing `conda run -n librejyotish python server.py` invocations keep working.
 """
 
 # Re-export everything so `import server` still exposes tool functions for tests.
-from openjyotish.server import (  # noqa: F401
+from librejyotish.server import (  # noqa: F401
     batch,
     geocode_location,
     get_ashtakavarga,

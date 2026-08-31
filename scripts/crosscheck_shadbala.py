@@ -23,9 +23,9 @@ from datetime import datetime
 sys.path.insert(0, ".")
 import swisseph as swe
 
-from openjyotish.core import ephemeris as ep
-from openjyotish.core.charts import MAIN_PLANETS
-from openjyotish.core.shadbala import build_shadbala
+from librejyotish.core import ephemeris as ep
+from librejyotish.core.charts import MAIN_PLANETS
+from librejyotish.core.shadbala import build_shadbala
 
 ep.init_ephemeris()
 swe.set_ephe_path(ep._resolve_ephe_path())

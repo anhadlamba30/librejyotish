@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from openjyotish.core import charts, dasha, ephemeris as ep, panchang
-from openjyotish.core.ashtakavarga import build_ashtakavarga
-from openjyotish.core.shadbala import build_shadbala
+from librejyotish.core import charts, dasha, ephemeris as ep, panchang
+from librejyotish.core.ashtakavarga import build_ashtakavarga
+from librejyotish.core.shadbala import build_shadbala
 
 FIXTURES = json.loads(
     (Path(__file__).parent / "reference_charts" / "fixtures.json").read_text())

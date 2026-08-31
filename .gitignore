@@ -13,11 +13,11 @@ build/
 .coverage
 
 # Ephemeris — legacy top-level data/ephe/ is gitignored for backwards-compat
-# local installs; the canonical bundled files live at openjyotish/data/ephe/
+# local installs; the canonical bundled files live at librejyotish/data/ephe/
 # and ARE tracked (shipped in the wheel under AGPL).
 data/ephe/*
 !data/ephe/.gitkeep
-!openjyotish/data/ephe/*.se1
+!librejyotish/data/ephe/*.se1
 
 # Personal/local MCP config
 opencode.json

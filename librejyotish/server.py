@@ -1,4 +1,4 @@
-"""OpenJyotish MCP server — deterministic Vedic astrology computations.
+"""LibreJyotish MCP server — deterministic Vedic astrology computations.
 
 Layer 1 only: every number is computed here (Swiss Ephemeris, sidereal zodiac,
 Lahiri ayanamsha by default, whole-sign houses). The calling LLM does synthesis
@@ -13,16 +13,16 @@ from zoneinfo import ZoneInfo
 from mcp.server.mcpserver import MCPServer
 
 try:
-    from openjyotish import __version__ as _pkg_version
+    from librejyotish import __version__ as _pkg_version
 except ImportError:
     _pkg_version = "0.1.1"
 
-from openjyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
+from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 
 server = MCPServer(
-    name="openjyotish",
+    name="librejyotish",
     version=_pkg_version,
-    title="OpenJyotish",
+    title="LibreJyotish",
     description=(
         "Deterministic Vedic (Jyotish) astrology calculations: natal and divisional "
         "charts, Vimshottari dasha, panchang, Ashtakavarga, Shadbala, transits."
@@ -287,7 +287,7 @@ def get_ashtakavarga(datetime_local: str, latitude: float, longitude: float,
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
-        from openjyotish.core.ashtakavarga import build_ashtakavarga
+        from librejyotish.core.ashtakavarga import build_ashtakavarga
         result = build_ashtakavarga(naive_local, tz_name, lat, lon, aya,
                                     node_type=node_type, true_positions=true_positions)
         if tz_warnings:
@@ -311,7 +311,7 @@ def get_shadbala(datetime_local: str, latitude: float, longitude: float,
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
-        from openjyotish.core.shadbala import build_shadbala
+        from librejyotish.core.shadbala import build_shadbala
         result = build_shadbala(naive_local, tz_name, lat, lon, aya,
                                 node_type=node_type, true_positions=true_positions)
         if tz_warnings:
@@ -604,8 +604,8 @@ def batch(operations: list[dict]) -> dict:
 
 
 def main() -> None:
-    """Entry point for `openjyotish` console script."""
-    parser = argparse.ArgumentParser(description="OpenJyotish MCP server")
+    """Entry point for `librejyotish` console script."""
+    parser = argparse.ArgumentParser(description="LibreJyotish MCP server")
     parser.add_argument("--version", action="store_true", help="print version and exit")
     args, _unknown = parser.parse_known_args()
     if args.version:

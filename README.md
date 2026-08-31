@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/anhadlamba30/openjyotish/master/assets/logo.png" width="180" alt="OpenJyotish logo">
+  <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/logo.png" width="180" alt="LibreJyotish logo">
 </p>
 
-<h1 align="center">OpenJyotish</h1>
+<h1 align="center">LibreJyotish</h1>
 
 <p align="center">
   Deterministic Vedic astrology calculations as an MCP server
@@ -10,10 +10,10 @@
 
 <p align="center">
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-2.0-blue" alt="MCP"></a>
-  <a href="https://github.com/anhadlamba30/openjyotish/blob/master/LICENSE"><img src="https://img.shields.io/github/license/anhadlamba30/openjyotish" alt="License"></a>
+  <a href="https://github.com/anhadlamba30/librejyotish/blob/master/LICENSE"><img src="https://img.shields.io/github/license/anhadlamba30/librejyotish" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python">
-  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/v/openjyotish" alt="PyPI"></a>
-  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/pyversions/openjyotish" alt="PyPI Python"></a>
+  <a href="https://pypi.org/project/librejyotish/"><img src="https://img.shields.io/pypi/v/librejyotish" alt="PyPI"></a>
+  <a href="https://pypi.org/project/librejyotish/"><img src="https://img.shields.io/pypi/pyversions/librejyotish" alt="PyPI Python"></a>
 </p>
 
 <p align="center">
@@ -29,9 +29,9 @@
 ```json
 {
   "mcpServers": {
-    "openjyotish": {
+    "librejyotish": {
       "command": "uvx",
-      "args": ["openjyotish"]
+      "args": ["librejyotish"]
     }
   }
 }
@@ -116,11 +116,11 @@ The server greets a sketchy input with a warning rather than a silently wrong ch
 **Install the CLI directly (any machine):**
 
 ```bash
-uvx openjyotish --version      # prints 0.1.1
-uvx openjyotish                # runs the MCP server over stdio
+uvx librejyotish --version      # prints 0.1.1
+uvx librejyotish                # runs the MCP server over stdio
 # or install permanently:
-uv tool install openjyotish
-openjyotish --version
+uv tool install librejyotish
+librejyotish --version
 ```
 
 **How the `uvx` install works.** `uvx` fetches the wheel from PyPI once and runs isolated; the wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY), so startup is instant and offline — no separate download step, no network at query time.
@@ -131,20 +131,20 @@ A full first-claude query resolves through `geocode_location` → `get_natal_cha
 
 ```bash
 conda env create -f environment.yml   # or your own venv with the two deps
-conda run -n openjyotish python -m openjyotish.server   # or python server.py (shim)
+conda run -n librejyotish python -m librejyotish.server   # or python server.py (shim)
 # after pip install -e .:
 pip install -e .
-openjyotish --version
-openjyotish
+librejyotish --version
+librejyotish
 ```
 
-Ephemeris and gazetteer live in `openjyotish/data/` inside the wheel under AGPL (Swiss Ephemeris dual-licensed AGPL/commercial; this project distributes the `.se1` files under AGPL). If files are absent, the server falls back to the built-in Moshier model and warns loudly, reporting the source in `ephemeris_source`.
+Ephemeris and gazetteer live in `librejyotish/data/` inside the wheel under AGPL (Swiss Ephemeris dual-licensed AGPL/commercial; this project distributes the `.se1` files under AGPL). If files are absent, the server falls back to the built-in Moshier model and warns loudly, reporting the source in `ephemeris_source`.
 
 To rebuild the gazetteer or refresh `.se1` files:
 
 ```bash
-conda run -n openjyotish python scripts/build_gazetteer.py
-conda run -n openjyotish python scripts/download_ephe.py  # refreshes openjyotish/data/ephe/
+conda run -n librejyotish python scripts/build_gazetteer.py
+conda run -n librejyotish python scripts/download_ephe.py  # refreshes librejyotish/data/ephe/
 ```
 
 **MCP client config — from source / conda:**
@@ -152,9 +152,9 @@ conda run -n openjyotish python scripts/download_ephe.py  # refreshes openjyotis
 ```json
 {
   "mcpServers": {
-    "openjyotish": {
+    "librejyotish": {
       "command": "conda",
-      "args": ["run", "-n", "openjyotish", "python", "-m", "openjyotish.server"]
+      "args": ["run", "-n", "librejyotish", "python", "-m", "librejyotish.server"]
     }
   }
 }
@@ -170,7 +170,7 @@ Legacy `python /path/to/server.py` still works via a shim at the repo root.
 - `tests/reference_charts/fixtures.json` pins four reference charts (1947, 1994, 2000, 2026 Delhi); `pytest` replays them end-to-end:
 
 ```bash
-conda run -n openjyotish python -m pytest tests/ -q
+conda run -n librejyotish python -m pytest tests/ -q
 ```
 
 ---
@@ -185,4 +185,4 @@ conda run -n openjyotish python -m pytest tests/ -q
 
 AGPL-3.0-or-later. Swiss Ephemeris is AGPL/commercial dual-licensed; this project uses it under the AGPL and carries the license forward. Hosting the MCP server as a network service triggers AGPL’s network clause (source disclosure to users of the service).
 
-Data attributions: Swiss Ephemeris `.se1` files © Astrodienst / Alois Treindl (AGPL); GeoNames `cities.csv` © GeoNames (CC BY 4.0) — see `openjyotish/data/gazetteer/README.md`.
+Data attributions: Swiss Ephemeris `.se1` files © Astrodienst / Alois Treindl (AGPL); GeoNames `cities.csv` © GeoNames (CC BY 4.0) — see `librejyotish/data/gazetteer/README.md`.

@@ -1,4 +1,4 @@
-name: openjyotish
+name: librejyotish
 channels:
   - conda-forge
 dependencies:

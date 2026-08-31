@@ -2,7 +2,7 @@
 
 import pytest
 
-from openjyotish.core import geocode
+from librejyotish.core import geocode
 
 APPROX = {
     "nashik": (19.99727, 73.79096, "Asia/Kolkata"),

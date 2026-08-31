@@ -9,7 +9,7 @@ timezone).
 GeoNames data is licensed CC-BY; see data/gazetteer/README.md for attribution.
 
 Usage::
-    conda run -n openjyotish python scripts/build_gazetteer.py
+    conda run -n librejyotish python scripts/build_gazetteer.py
 
 Offline rebuilds can reuse a previously downloaded `cities1000.zip` via
 `--zip path/to/cities1000.zip`.

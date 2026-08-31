@@ -23,7 +23,7 @@ from pathlib import Path
 def _default_gazetteer() -> Path:
     try:
         from importlib.resources import files
-        return Path(str(files("openjyotish.data.gazetteer") / "cities.csv"))
+        return Path(str(files("librejyotish.data.gazetteer") / "cities.csv"))
     except Exception:
         return Path(__file__).resolve().parent.parent / "data" / "gazetteer" / "cities.csv"
 

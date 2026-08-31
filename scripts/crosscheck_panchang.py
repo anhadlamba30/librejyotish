@@ -1,7 +1,7 @@
-"""Dev-only cross-check of OpenJyotish panchanga against PyJHora.
+"""Dev-only cross-check of LibreJyotish panchanga against PyJHora.
 
 Requires pip install PyJHora (dev-only). 
-Run: conda run -n openjyotish python scripts/crosscheck_panchang.py
+Run: conda run -n librejyotish python scripts/crosscheck_panchang.py
 """
 
 import sys
@@ -12,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import swisseph as swe
 
-from openjyotish.core import ephemeris as ep
-from openjyotish.core import panchang as op
+from librejyotish.core import ephemeris as ep
+from librejyotish.core import panchang as op
 
 ep.init_ephemeris()
 swe.set_ephe_path(ep._resolve_ephe_path())

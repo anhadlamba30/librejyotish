@@ -1,11 +1,11 @@
-"""Dev-only cross-check of OpenJyotish Vimshottari math against PyJHora.
+"""Dev-only cross-check of LibreJyotish Vimshottari math against PyJHora.
 
 Patches PyJHora to Lahiri ayanamsha / 365.25-day year so both engines share
 identical conventions, then compares raw Julian-day period boundaries (bypassing
 PyJHora's display formatting, which applies its own offsets).
 
 Requires pip install PyJHora (dev-only; not used by the server).
-Run: conda run -n openjyotish python scripts/crosscheck_dasha.py
+Run: conda run -n librejyotish python scripts/crosscheck_dasha.py
 """
 
 import sys
@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import swisseph as swe
 
-from openjyotish.core import dasha as od
-from openjyotish.core import ephemeris as ep
+from librejyotish.core import dasha as od
+from librejyotish.core import ephemeris as ep
 
 ep.init_ephemeris()  # point both engines at data/ephe Swiss files
 swe.set_ephe_path(ep._resolve_ephe_path())

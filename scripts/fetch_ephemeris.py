@@ -1,10 +1,10 @@
 """Download Swiss Ephemeris data files into data/ephe (one-time setup).
 
 Files cover years 1800-2400 CE which comfortably exceeds any practical chart.
-Without these files OpenJyotish transparently falls back to the built-in
+Without these files LibreJyotish transparently falls back to the built-in
 Moshier ephemeris (sub-arcsecond accuracy for this era, no downloads needed).
 
-Run: conda run -n openjyotish python scripts/fetch_ephemeris.py
+Run: conda run -n librejyotish python scripts/fetch_ephemeris.py
 """
 
 import sys
@@ -46,7 +46,7 @@ def main() -> int:
     EPHE_DIR.mkdir(parents=True, exist_ok=True)
     ok = all(fetch(name) for name in FILES)
     print("ephemeris files ready" if ok else "some downloads failed; "
-          "OpenJyotish will use the built-in Moshier fallback")
+          "LibreJyotish will use the built-in Moshier fallback")
     return 0 if ok else 1
 
 

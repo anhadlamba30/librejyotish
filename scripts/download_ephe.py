@@ -1,8 +1,8 @@
-"""Fetch Swiss Ephemeris data files into openjyotish/data/ephe/.
+"""Fetch Swiss Ephemeris data files into librejyotish/data/ephe/.
 
 The Moshier fallback is built into pyswisseph, but the project is committed to
-not silently degrading precision: if `openjyotish/data/ephe/` has no ephemeris
-files the server warns loudly (see openjyotish/core/ephemeris.py). This script
+not silently degrading precision: if `librejyotish/data/ephe/` has no ephemeris
+files the server warns loudly (see librejyotish/core/ephemeris.py). This script
 installs the standard high-precision set, covering years 1800-2399:
 
 - sepl_18.se1  (planet positions, t<1826 pol, t>1826 eph)
@@ -12,13 +12,13 @@ Files are bundled in the wheel under AGPL (Swiss Ephemeris is dual-licensed
 AGPL/commercial; distributing the `.se1` files inside an AGPL wheel that
 carries the license forward is the standard AGPL route — see
 https://github.com/aloistr/swisseph and https://www.astro.com/swisseph/).
-They are also git-tracked at `openjyotish/data/ephe/` so `pip install` /
+They are also git-tracked at `librejyotish/data/ephe/` so `pip install` /
 `uvx` is instant and offline. This script remains for refreshing the files
 or for legacy `data/ephe/` installs; top-level `data/ephe/` is gitignored for
 backwards-compat local installs only.
 
 Usage::
-    conda run -n openjyotish python scripts/download_ephe.py
+    conda run -n librejyotish python scripts/download_ephe.py
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ FILES = {
     "semo_18.se1": "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/semo_18.se1",
 }
 
-EPHE_DIR = Path(__file__).resolve().parent.parent / "openjyotish" / "data" / "ephe"
+EPHE_DIR = Path(__file__).resolve().parent.parent / "librejyotish" / "data" / "ephe"
 LEGACY_DIR = Path(__file__).resolve().parent.parent / "data" / "ephe"
 
 
