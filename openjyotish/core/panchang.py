@@ -108,7 +108,27 @@ def build_panchang(
                                    true_positions=true_positions)["Moon"]["longitude"]
     nak = ep.nakshatra_of(moon_lon)
 
+    warnings: list[str] = []
+    if riseset["sunrise"] is not None and riseset["sunset"] is not None:
+        sunrise_dt = datetime.fromisoformat(riseset["sunrise"])
+        sunset_dt = datetime.fromisoformat(riseset["sunset"])
+        if sunset_dt <= sunrise_dt:
+            warnings.append(
+                f"computed sunset ({riseset['sunset']}) is not after sunrise "
+                f"({riseset['sunrise']}) on the same civil date — the supplied "
+                f"timezone and coordinates are inconsistent with the Sun's "
+                f"timezone, so the sunrise-anchored panchang may be nonsensical. "
+                f"Verify that `timezone` matches the coordinates."
+            )
+
     return {
+        "input": {
+            "date": local_date.isoformat(),
+            "timezone": tz_name,
+            "latitude": latitude,
+            "longitude": longitude,
+        },
+        "warnings": warnings,
         "input": {
             "date": local_date.isoformat(),
             "timezone": tz_name,

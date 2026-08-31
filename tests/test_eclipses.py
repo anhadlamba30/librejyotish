@@ -9,8 +9,8 @@ from datetime import datetime
 
 import pytest
 
-from core import eclipses
-from core.ephemeris import init_ephemeris
+from openjyotish.core import eclipses
+from openjyotish.core.ephemeris import init_ephemeris
 
 init_ephemeris()
 

@@ -6,6 +6,7 @@ so existing `conda run -n openjyotish python server.py` invocations keep working
 
 # Re-export everything so `import server` still exposes tool functions for tests.
 from openjyotish.server import (  # noqa: F401
+    batch,
     geocode_location,
     get_ashtakavarga,
     get_current_transits,
@@ -22,6 +23,7 @@ from openjyotish.server import (  # noqa: F401
 __all__ = [
     "server",
     "main",
+    "batch",
     "get_natal_chart",
     "get_divisional_chart",
     "get_vimshottari_dasha",

@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import swisseph as swe
 
-from core import dasha as od
-from core import ephemeris as ep
+from openjyotish.core import dasha as od
+from openjyotish.core import ephemeris as ep
 
 ep.init_ephemeris()  # point both engines at data/ephe Swiss files
 swe.set_ephe_path(ep._resolve_ephe_path())

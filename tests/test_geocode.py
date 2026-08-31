@@ -2,7 +2,7 @@
 
 import pytest
 
-from core import geocode
+from openjyotish.core import geocode
 
 APPROX = {
     "nashik": (19.99727, 73.79096, "Asia/Kolkata"),
@@ -51,6 +51,10 @@ def test_no_match():
     r = geocode.geocode("Qwertzuiopville, XZ")
     assert not r["resolved"]
     assert r["candidates"] == []
+    # The searched string must be echoed back even on failure, so a caller can
+    # attribute a no-match back to the specific query in a multi-lookup batch.
+    assert r["query"]["raw"] == "Qwertzuiopville, XZ"
+    assert r["query"]["place"] == "Qwertzuiopville"
 
 
 def test_same_name_multicandidate_is_ambiguous():
@@ -84,3 +88,15 @@ def test_nearest_timezone_from_coords():
     assert geocode.nearest_timezone(40.7, -74.0).startswith("America/")
     with pytest.raises(ValueError):
         geocode.nearest_timezone(100.0, 0.0)
+
+
+def test_nearest_place_reports_distance():
+    # A real city should resolve to itself at ~0 km; open ocean (null island)
+    # resolves to the nearest coast far away, surfacing a plausibility signal.
+    near = geocode.nearest_place(19.997, 73.790)
+    assert near["timezone"] == "Asia/Kolkata"
+    assert near["distance_km"] < 5
+    far = geocode.nearest_place(0.0, 0.0)
+    assert far["distance_km"] > 100
+    with pytest.raises(ValueError):
+        geocode.nearest_place(100.0, 0.0)

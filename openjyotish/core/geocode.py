@@ -15,6 +15,7 @@ than guessing.
 from __future__ import annotations
 
 import csv
+import math
 import unicodedata
 from functools import lru_cache
 from pathlib import Path
@@ -99,7 +100,6 @@ def _search(q: str, rows: list[dict], country_code: str | None,
 
     if not candidates:
         return {
-            "query": {"raw": None, "place": None, "country_code": country_code or None},
             "resolved": False,
             "ambiguous": False,
             "matched_tier": None,
@@ -117,7 +117,6 @@ def _search(q: str, rows: list[dict], country_code: str | None,
     ambiguous = not (exact_unique or same_place_alias) or (matched_tier == "prefix_name")
 
     return {
-        "query": {"raw": None, "place": None, "country_code": country_code or None},
         "resolved": True,
         "ambiguous": ambiguous,
         "matched_tier": matched_tier,
@@ -142,27 +141,56 @@ def _search(q: str, rows: list[dict], country_code: str | None,
     }
 
 
-def nearest_timezone(latitude: float, longitude: float) -> str:
-    """Best-effort IANA timezone for a lat/lon, from the nearest gazetteer city.
+def _distance_km_approx(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in km (haversine)."""
+    r = 6371.0
+    p1 = lat1 * math.pi / 180.0
+    p2 = lat2 * math.pi / 180.0
+    dp = (lat2 - lat1) * math.pi / 180.0
+    dl = (lon2 - lon1) * math.pi / 180.0
+    a = math.sin(dp / 2.0) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2.0) ** 2
+    c = 2.0 * math.asin(min(1.0, math.sqrt(a)))
+    return r * c
 
-    This maps a *point* to the nearest bundled city's zone. IANA zones are
-    region polygons, not points, so near timezone borders this can pick the
-    wrong side. Treat the result as a hint that a caller may override.
+
+def nearest_place(latitude: float, longitude: float) -> dict:
+    """Nearest bundled gazetteer city to a lat/lon, with match distance in km.
+
+    Every point maps to the nearest city's timezone, so far-off matches mean
+    the coordinates probably don't describe a populated place. Callers should
+    use `distance_km` as a plausibility signal: a large value (e.g. > 250 km)
+    strongly suggests the coordinates are wrong or oceanic.
     """
     if not -90.0 <= latitude <= 90.0 or not -180.0 <= longitude <= 180.0:
         raise ValueError("latitude/longitude out of range")
     rows = _load()
     best = None
-    best_d2 = float("inf")
+    best_km = float("inf")
     for r in rows:
-        # Equirectangular-ish approximation: scale longitude by cos(lat).
-        dx = (r["longitude"] - longitude) * (3.141592653589793 / 180.0)
-        dy = (r["latitude"] - latitude) * (3.141592653589793 / 180.0)
-        d2 = dx * dx + dy * dy
-        if d2 < best_d2:
-            best_d2 = d2
-            best = r["timezone"]
-    return best
+        km = _distance_km_approx(latitude, longitude, r["latitude"], r["longitude"])
+        if km < best_km:
+            best_km = km
+            best = r
+    return {
+        "place": best["name"],
+        "latitude": best["latitude"],
+        "longitude": best["longitude"],
+        "admin1_code": best["admin1_code"],
+        "country_code": best["country_code"],
+        "timezone": best["timezone"],
+        "distance_km": round(best_km, 1),
+    }
+
+
+def nearest_timezone(latitude: float, longitude: float) -> str:
+    """Best-effort IANA timezone for a lat/lon, from the nearest gazetteer city.
+
+    This maps a *point* to the nearest bundled city's zone. IANA zones are
+    region polygons, not points, so near timezone borders this can pick the
+    wrong side. Treat the result as a hint that a caller may override; use
+    `nearest_place` to also get the match distance as a plausibility signal.
+    """
+    return nearest_place(latitude, longitude)["timezone"]
 
 
 def geocode(query: str, country: str | None = None, limit: int = 5) -> dict:
@@ -181,11 +209,10 @@ def geocode(query: str, country: str | None = None, limit: int = 5) -> dict:
     country_code = (country or hint or "").strip().upper()
     q = _fold(place)
 
+    base_query = {"raw": query, "place": place, "country_code": country_code or None}
     result = _search(q, rows := _load(), country_code, limit)
     if result["resolved"]:
-        result["query"] = {
-            "raw": query, "place": place, "country_code": country_code or None,
-        }
+        result["query"] = base_query
         return result
     # A country code that happens to be a real ISO code (e.g. MH =
     # Marshall Islands) can be a region abbreviation. Re-run without the
@@ -194,7 +221,7 @@ def geocode(query: str, country: str | None = None, limit: int = 5) -> dict:
         retried = _search(q, rows, None, limit)
         if retried["resolved"]:
             retried["query"] = {
-                "raw": query, "place": place, "country_code": country_code or None,
+                **base_query,
                 "country_filter": f"applied then dropped (no matches in {country_code})",
             }
             retried["ambiguous"] = True
@@ -203,4 +230,5 @@ def geocode(query: str, country: str | None = None, limit: int = 5) -> dict:
                 "resolved without the filter — confirm the region with the user."
             )
             return retried
+    result["query"] = base_query
     return result

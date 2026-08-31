@@ -13,9 +13,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from core import charts, dasha, ephemeris as ep, panchang
-from core.ashtakavarga import build_ashtakavarga
-from core.shadbala import build_shadbala
+from openjyotish.core import charts, dasha, ephemeris as ep, panchang
+from openjyotish.core.ashtakavarga import build_ashtakavarga
+from openjyotish.core.shadbala import build_shadbala
 
 CASES = [
     ("case_1994_delhi", "1994-03-21T14:32:00", "Asia/Kolkata", 28.6139, 77.2090,

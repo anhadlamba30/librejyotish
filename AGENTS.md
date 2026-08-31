@@ -16,4 +16,4 @@ explicit `conventions_used` block.
 - `mcp>=2.0.0` uses the new `MCPServer` API (`from mcp.server.mcpserver import MCPServer`,
   `@server.tool()` decorator, `server.run("stdio")`). There is NO
   `mcp.server.fastmcp.FastMCP` in 2.x.
-- Dev-only oracle PyJHora lives in the env; never import it from core/ or server.py.
+- Dev-only oracle PyJHora lives in the env; never import it from openjyotish.core/ or openjyotish.server (production package paths). It may only be used in the dev-only oracle scripts under scripts/.

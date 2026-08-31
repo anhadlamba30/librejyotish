@@ -15,7 +15,7 @@ from mcp.server.mcpserver import MCPServer
 try:
     from openjyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.1.0"
+    _pkg_version = "0.1.1"
 
 from openjyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 
@@ -39,6 +39,24 @@ EPHEMERIS_INIT = ep.init_ephemeris()
 
 
 def _parse_datetime(value: str, field: str = "datetime") -> datetime:
+    """Parse a strict ISO-8601 naive local datetime string (e.g. '1994-03-21T14:32:00').
+
+    Only the 'T'-separated ISO form is accepted; space-separated, slash-delimited,
+    and 12-hour formats are rejected so malformed input fails loudly instead of
+    being silently misinterpreted.
+    """
+    if not isinstance(value, str):
+        raise ValueError(
+            f"{field} must be an ISO-8601 local datetime string like "
+            f"'1994-03-21T14:32:00' (naive, interpreted in the given timezone)"
+        )
+    value = value.strip()
+    if "T" not in value:
+        raise ValueError(
+            f"{field} must use 'T' to separate the date and time, e.g. "
+            f"'1994-03-21T14:32:00' — got {value!r} (space-separated, slash, or "
+            f"12-hour AM/PM forms are not accepted)"
+        )
     try:
         dt = datetime.fromisoformat(value)
     except (TypeError, ValueError) as exc:
@@ -59,18 +77,46 @@ def _validate_tz(tz_name: str) -> str:
     return tz_name
 
 
+def _parse_date(value: str, field: str = "date") -> datetime:
+    """Parse a strict ISO-8601 civil date (e.g. '2025-01-01') as a naive local
+    midnight datetime. Slash and other ambiguous formats are rejected loudly."""
+    if not isinstance(value, str):
+        raise ValueError(
+            f"{field} must be an ISO-8601 date string like '2025-01-01'"
+        )
+    value = value.strip()
+    try:
+        d = date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{field} must be an ISO-8601 date string like '2025-01-01' "
+            f"(slash and 12-hour forms are not accepted): {exc}"
+        ) from exc
+    return datetime(d.year, d.month, d.day)
+
+
 def _resolve_timezone(timezone: str | None, latitude: float,
                       longitude: float) -> tuple[str, list[str]]:
     """Return (tz_name, warnings). Derives timezone from coords when omitted and
     cross-checks against the gazetteer-derived zone when explicitly supplied.
     """
     warnings: list[str] = []
-    derived = geocode.nearest_timezone(latitude, longitude)
+    nearest = geocode.nearest_place(latitude, longitude)
+    derived = nearest["timezone"]
+    if nearest["distance_km"] > 250:
+        warnings.append(
+            f"the nearest populated place to these coordinates is "
+            f"{nearest['place']}, {nearest['country_code']} at "
+            f"{nearest['distance_km']} km away — the given lat/lon may be wrong "
+            f"(dropped digit, transposed sign, or open water). Please confirm."
+        )
     if timezone is None:
-        return derived, [
+        warnings.append(
             f"timezone auto-derived from the nearest gazetteer city as "
-            f"{derived!r}; pass `timezone` explicitly to override."
-        ]
+            f"{derived!r} ({nearest['place']}, {nearest['distance_km']} km away); "
+            f"pass `timezone` explicitly to override."
+        )
+        return derived, warnings
     tz_name = _validate_tz(timezone)
     if derived and derived != tz_name:
         warnings.append(
@@ -112,7 +158,12 @@ def get_natal_chart(datetime_local: str, latitude: float, longitude: float,
     datetime_local: ISO-8601 naive local birth datetime, e.g. '1994-03-21T14:32:00'.
     timezone: IANA zone name, e.g. 'Asia/Kolkata'; when omitted it is derived
       from the coordinates. ayanamsha: 'lahiri' (default).
-    node_type: 'true' or 'mean'. true_positions: true for true-position planets.
+    node_type: 'true' or 'mean' — true node is the physically oscillating lunar
+      node; mean node is its smoothed average. Jyotish most commonly uses 'true'.
+    true_positions: false (default) = apparent geocentric positions (refraction
+      and light-time corrected, the standard for astrology); true = geometric
+      positions without those corrections. Leave false unless you know you need
+      the geometric values.
     """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
@@ -137,6 +188,8 @@ def get_divisional_chart(datetime_local: str, latitude: float, longitude: float,
     """Divisional (varga) chart D1..D60 for the same birth input, e.g. division='D9'.
 
     Returns each body's varga sign and house counted whole-sign from the varga Lagna.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
     """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
@@ -169,6 +222,8 @@ def get_vimshottari_dasha(datetime_local: str, latitude: float, longitude: float
       4 = + sookshma. Lower levels shrink the response.
     start_date, end_date: optional ISO-8601 date strings (e.g. '2025-01-01')
       to filter the returned periods to those overlapping the range.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
     """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
@@ -176,8 +231,8 @@ def get_vimshottari_dasha(datetime_local: str, latitude: float, longitude: float
         ref = None
         if reference_datetime_local is not None:
             ref = _parse_datetime(reference_datetime_local, "reference_datetime_local")
-        start = _parse_datetime(start_date, "start_date") if start_date else None
-        end = _parse_datetime(end_date, "end_date") if end_date else None
+        start = _parse_date(start_date, "start_date") if start_date else None
+        end = _parse_date(end_date, "end_date") if end_date else None
         result = dasha.build_vimshottari_dasha(naive_local, tz_name, lat, lon, aya,
                                                node_type=node_type,
                                                true_positions=true_positions,
@@ -201,6 +256,7 @@ def get_panchang(date_local: str, latitude: float, longitude: float,
 
     date_local: ISO date string 'YYYY-MM-DD' (civil day in the given timezone).
     timezone: IANA zone name; when omitted it is derived from the coordinates.
+    true_positions: false (default) = apparent positions; true = geometric.
     """
     try:
         tz_name, tz_warnings = _resolve_timezone(timezone, float(latitude), float(longitude))
@@ -210,8 +266,9 @@ def get_panchang(date_local: str, latitude: float, longitude: float,
             raise ValueError(f"date_local must be 'YYYY-MM-DD': {exc}") from exc
         result = panchang.build_panchang(d, tz_name, float(latitude), float(longitude),
                                          ayanamsha, true_positions=true_positions)
-        if tz_warnings:
-            result["warnings"] = tz_warnings
+        result_warnings = list(result.get("warnings") or [])
+        result_warnings.extend(w for w in tz_warnings if w not in result_warnings)
+        result["warnings"] = result_warnings
         return result
     except (ValueError, TypeError) as exc:
         return _error("get_panchang", exc)
@@ -223,7 +280,10 @@ def get_ashtakavarga(datetime_local: str, latitude: float, longitude: float,
                      ayanamsha: str = "lahiri",
                      node_type: str = "true", true_positions: bool = False) -> dict:
     """Ashtakavarga bindu tables: Bhinnashtakavarga per planet plus
-    Sarvashtakavarga totals across the 12 signs."""
+    Sarvashtakavarga totals across the 12 signs.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
+    """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
@@ -244,7 +304,10 @@ def get_shadbala(datetime_local: str, latitude: float, longitude: float,
                  node_type: str = "true", true_positions: bool = False) -> dict:
     """Shadbala six-fold strength per planet (sthana, dig, kala, cheshta,
     naisargika, drik) with component breakdowns, totals in virupas and rupas,
-    and required-strength comparison."""
+    and required-strength comparison.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
+    """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
             datetime_local, timezone, latitude, longitude, ayanamsha)
@@ -270,6 +333,8 @@ def get_current_transits(datetime_local: str, latitude: float, longitude: float,
 
     as_of_datetime_local defaults to now in `timezone`.
     timezone: IANA zone name; when omitted it is derived from the coordinates.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
     """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
@@ -375,6 +440,8 @@ def get_eclipses(datetime_local: str, latitude: float, longitude: float,
     as_of_datetime_local defaults to now in `timezone`; count: 1-20. The birth
     latitude/longitude anchor the natal houses only — eclipses are global events.
     timezone: IANA zone name; when omitted it is derived from the coordinates.
+    node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
+      (default) = apparent positions; true = geometric.
     """
     try:
         naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
@@ -477,6 +544,63 @@ def geocode_location(place: str, country: str | None = None,
         return result
     except (ValueError, TypeError) as exc:
         return _error("geocode_location", exc)
+
+
+_BATCHABLE = {
+    "get_natal_chart": get_natal_chart,
+    "get_divisional_chart": get_divisional_chart,
+    "get_vimshottari_dasha": get_vimshottari_dasha,
+    "get_panchang": get_panchang,
+    "get_ashtakavarga": get_ashtakavarga,
+    "get_shadbala": get_shadbala,
+    "get_current_transits": get_current_transits,
+    "get_eclipses": get_eclipses,
+    "geocode_location": geocode_location,
+}
+
+
+@server.tool()
+def batch(operations: list[dict]) -> dict:
+    """Run multiple chart/panchang/geocode operations in a single call.
+
+    Use this for comparative work — multiple people's charts in one turn, or
+    screening a date range — instead of sequential single calls.
+
+    operations: a list of {"tool": <name>, "arguments": {<param>: value}}.
+    Supported tool names: get_natal_chart, get_divisional_chart,
+      get_vimshottari_dasha, get_panchang, get_ashtakavarga, get_shadbala,
+      get_current_transits, get_eclipses, geocode_location. Each `arguments`
+      dict is the same set of parameters that tool normally takes.
+
+    Every result is the same structured dict that tool would return alone. A
+    failing operation becomes {"error": {...}} rather than aborting the batch,
+    so a single bad input never discards the other results. Response order
+    matches the input order.
+    """
+    if not isinstance(operations, list) or not operations:
+        raise ValueError("operations must be a non-empty list of {tool, arguments} dicts")
+    if len(operations) > 50:
+        raise ValueError("operations accepts at most 50 items in one call")
+    results = []
+    for op in operations:
+        if not isinstance(op, dict) or "tool" not in op:
+            results.append(_error("batch",
+                                  ValueError("each operation must be a {tool, arguments} dict")))
+            continue
+        name = op["tool"]
+        fn = _BATCHABLE.get(name)
+        if fn is None:
+            results.append(_error("batch",
+                                  ValueError(
+                                      f"unknown tool {name!r}; supported: "
+                                      f"{', '.join(sorted(_BATCHABLE))}")))
+            continue
+        args = op.get("arguments") or {}
+        try:
+            results.append(fn(**args))
+        except (TypeError, ValueError) as exc:
+            results.append(_error("batch", exc))
+    return {"count": len(results), "results": results}
 
 
 def main() -> None:

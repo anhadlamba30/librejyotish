@@ -12,7 +12,7 @@ def test_package_version_matches_server():
     import openjyotish
     import openjyotish.server as srv
 
-    assert openjyotish.__version__ == "0.1.0"
+    assert openjyotish.__version__ == "0.1.1"
     assert srv.server.version == openjyotish.__version__
 
 
@@ -22,7 +22,7 @@ def test_cli_version_flag():
         capture_output=True, text=True, timeout=5,
     )
     assert result.returncode == 0
-    assert "0.1.0" in result.stdout
+    assert "0.1.1" in result.stdout
 
 
 def test_bundled_data_available():

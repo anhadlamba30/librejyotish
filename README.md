@@ -46,7 +46,7 @@ This resolves through `geocode_location` → `get_natal_chart` → `get_division
 Or install the CLI directly:
 
 ```bash
-uvx openjyotish --version      # prints 0.1.0
+uvx openjyotish --version      # prints 0.1.1
 uvx openjyotish                # runs the MCP server over stdio
 # or install permanently:
 uv tool install openjyotish

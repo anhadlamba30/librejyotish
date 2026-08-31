@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from core import charts, dasha, ephemeris as ep, panchang
-from core.ashtakavarga import build_ashtakavarga
-from core.shadbala import build_shadbala
+from openjyotish.core import charts, dasha, ephemeris as ep, panchang
+from openjyotish.core.ashtakavarga import build_ashtakavarga
+from openjyotish.core.shadbala import build_shadbala
 
 FIXTURES = json.loads(
     (Path(__file__).parent / "reference_charts" / "fixtures.json").read_text())
@@ -180,7 +180,7 @@ def test_server_registers_all_tools():
     assert names == {
         "get_natal_chart", "get_divisional_chart", "get_vimshottari_dasha",
         "get_panchang", "get_ashtakavarga", "get_shadbala",
-        "get_current_transits", "get_eclipses", "geocode_location"}
+        "get_current_transits", "get_eclipses", "geocode_location", "batch"}
 
 
 def test_server_tool_error_paths():
@@ -213,3 +213,42 @@ def test_server_timezone_mismatch_warns():
     r = srv_mod.get_natal_chart("1994-03-21T14:30:00", 40.71, -74.0, "Asia/Kolkata")
     assert "error" not in r
     assert any("does not match" in w for w in r["warnings"])
+
+
+def test_server_strict_datetime_rejects_space_separator():
+    import server as srv_mod
+    r = srv_mod.get_natal_chart("1994-03-21 14:30:00", 19.99, 73.79, "Asia/Kolkata")
+    assert "error" in r
+    assert "T" in r["error"]["message"]
+
+
+def test_server_start_date_accepts_date_only():
+    import server as srv_mod
+    r = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata",
+        levels=1, start_date="2000-01-01")
+    assert "error" not in r
+
+
+def test_server_panchang_flag_sunset_before_sunrise():
+    import server as srv_mod
+    # Mumbai coords + a wildly wrong timezone produce sunset before sunrise.
+    r = srv_mod.get_panchang(
+        "2025-06-21", 19.0, 72.8, timezone="America/New_York")
+    assert "error" not in r
+    assert any("not after sunrise" in w for w in r.get("warnings", []))
+
+
+def test_server_batch_dispatches():
+    import server as srv_mod
+    r = srv_mod.batch([
+        {"tool": "get_natal_chart", "arguments": {
+            "datetime_local": "1994-03-21T14:30:00",
+            "latitude": 19.99, "longitude": 73.79, "timezone": "Asia/Kolkata"}},
+        {"tool": "does_not_exist", "arguments": {}},
+        {"tool": "geocode_location", "arguments": {"place": "Nashik, India", "limit": 1}},
+    ])
+    assert r["count"] == 3
+    assert "error" not in r["results"][0]
+    assert "error" in r["results"][1]
+    assert r["results"][2]["resolved"]

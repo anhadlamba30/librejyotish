@@ -12,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import swisseph as swe
 
-from core import ephemeris as ep
-from core import panchang as op
+from openjyotish.core import ephemeris as ep
+from openjyotish.core import panchang as op
 
 ep.init_ephemeris()
 swe.set_ephe_path(ep._resolve_ephe_path())

@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import charts as ch
-from core import ephemeris as ep
+from openjyotish.core import charts as ch
+from openjyotish.core import ephemeris as ep
 from jhora.horoscope.chart import charts as pj
 
 DT = datetime(1994, 3, 21, 14, 32)
