@@ -1,16 +1,62 @@
-# OpenJyotish
+<p align="center">
+  <img src="https://raw.githubusercontent.com/anhadlamba30/openjyotish/main/assets/logo.png" width="180" alt="OpenJyotish logo">
+</p>
 
-Deterministic Vedic (Jyotish) astrology computations exposed as an
-[Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
+<h1 align="center">OpenJyotish</h1>
 
-Layer 1 only: pure computation, no interpretation. Every number comes from
-Swiss Ephemeris via [pyswisseph](https://pypi.org/project/pyswisseph/); the
-calling LLM is responsible for synthesis and communication only — it never
-computes or guesses astronomy.
+<p align="center">
+  Deterministic Vedic astrology for Muse — numbers from Swiss Ephemeris, words from Muse.
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/v/openjyotish" alt="PyPI"></a>
+  <a href="https://pypi.org/project/openjyotish/"><img src="https://img.shields.io/pypi/pyversions/openjyotish" alt="Python"></a>
+  <a href="https://github.com/anhadlamba30/openjyotish/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/openjyotish" alt="License"></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-2.0-blue" alt="MCP"></a>
+</p>
+
+<p align="center">
+  <b>Layer 1 only: pure computation, no interpretation.</b> Every number comes from Swiss Ephemeris via <a href="https://pypi.org/project/pyswisseph/">pyswisseph</a>; Muse does synthesis only — it never computes or guesses astronomy.
+</p>
+
+---
+
+## 30-second quickstart
+
+No clone, no conda, no download — `uvx` fetches the wheel from PyPI once and runs isolated. The wheel bundles Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and GeoNames `cities.csv` (CC-BY) so startup is instant and offline.
+
+```bash
+uvx openjyotish --version      # prints 0.1.0
+uvx openjyotish                # runs the MCP server over stdio
+# or install permanently:
+uv tool install openjyotish
+openjyotish --version
+```
+
+**Add to Claude Desktop** — `Settings → Developer → Edit Config` → `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "openjyotish": {
+      "command": "uvx",
+      "args": ["openjyotish"]
+    }
+  }
+}
+```
+
+Restart Claude, look for the 🔧 wrench. Ask:
+
+> “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
+
+Muse calls `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha` behind the scenes and answers in plain language, citing `conventions_used`.
+
+---
 
 ## Conventions
 
-Locked for v1 and reported in every response's `conventions_used` block:
+Locked for v1 and reported in every response’s `conventions_used` block:
 
 - **Zodiac:** sidereal, **Lahiri (Chitrapaksha)** ayanamsha by default
 - **Houses:** whole-sign from the Lagna sign
@@ -31,72 +77,35 @@ Locked for v1 and reported in every response's `conventions_used` block:
 | `get_shadbala` | birth input | six-fold strength: sthana, dig, kala, cheshta, naisargika, drik; virupas/rupas vs required |
 | `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon (raw positions only) |
 | `get_eclipses` | birth input + optional as-of moment + `count` | next solar/lunar eclipses: exact event times, type, eclipse point (sidereal sign/nakshatra) and its house from natal Lagna & Moon |
-| `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit's numbers as the `latitude`/`longitude` inputs above) |
+| `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit’s numbers as the `latitude`/`longitude` inputs above) |
 
-All tools are stateless: JSON-style arguments in, structured dict out. Errors
-come back as `{"error": {"type", "message"}}` payloads. Every response includes
-an explicit `conventions_used` block.
+All tools are stateless: JSON in, structured dict out. Errors are `{"error": {"type", "message"}}`. Every response includes an explicit `conventions_used` block.
 
-## Setup
+---
 
-Requires Python ≥ 3.11.
-
-**Quickstart (recommended) — no clone needed:**
-
-```bash
-uvx openjyotish --version      # prints 0.1.0
-uvx openjyotish                # runs the MCP server over stdio
-# or install permanently:
-uv tool install openjyotish
-openjyotish --version
-```
-
-`uvx` fetches the wheel from PyPI (once) and runs it isolated — no conda
-setup, no ephemeris download. The wheel bundles the Swiss Ephemeris
-`sepl_18.se1`/`semo_18.se1` (1800–2399, AGPL) and the GeoNames gazetteer
-(`cities.csv`, CC-BY) so startup is instant and offline.
+## Setup alternatives
 
 **From source (development):**
 
 ```bash
 conda env create -f environment.yml   # or your own venv with the two deps
 conda run -n openjyotish python -m openjyotish.server   # or python server.py (shim)
-# alternative without conda after `pip install -e .`:
+# after pip install -e .:
 pip install -e .
 openjyotish --version
 openjyotish
 ```
 
-Ephemeris and gazetteer are bundled in `openjyotish/data/` inside the wheel
-under AGPL (Swiss Ephemeris dual-licensed AGPL/commercial; this project
-distributes the `.se1` files under AGPL and carries the license forward).
-If the files are absent, the server falls back to the built-in Moshier model
-and warns loudly, reporting the source in `ephemeris_source` — but the wheel
-ships them, so this only matters for stripped installs.
+Ephemeris and gazetteer live in `openjyotish/data/` inside the wheel under AGPL (Swiss Ephemeris dual-licensed AGPL/commercial; this project distributes the `.se1` files under AGPL). If files are absent, the server falls back to the built-in Moshier model and warns loudly, reporting the source in `ephemeris_source`.
 
-To rebuild the gazetteer from GeoNames or refresh the `.se1` files:
+To rebuild the gazetteer or refresh `.se1` files:
 
 ```bash
 conda run -n openjyotish python scripts/build_gazetteer.py
 conda run -n openjyotish python scripts/download_ephe.py  # refreshes openjyotish/data/ephe/
 ```
 
-**MCP client config:**
-
-With `uvx` (recommended — no path needed):
-
-```json
-{
-  "mcpServers": {
-    "openjyotish": {
-      "command": "uvx",
-      "args": ["openjyotish"]
-    }
-  }
-}
-```
-
-From source / conda:
+**MCP client config — from source / conda:**
 
 ```json
 {
@@ -111,20 +120,18 @@ From source / conda:
 
 Legacy `python /path/to/server.py` still works via a shim at the repo root.
 
+---
+
 ## Validation
 
-- `scripts/crosscheck_*.py` compare every module against
-  [PyJHora](https://github.com/naturalstupid/PyJHora) as an independent oracle
-  (dev-only dependency). All vargas, dasha boundaries, panchang elements,
-  Ashtakavarga tables, and the exactly-comparable Shadbala components match;
-  known PyJHora defects in paksha/dig/cheshta/hora/ayana handling follow canon
-  instead (see module docstrings).
-- `tests/reference_charts/fixtures.json` pins four reference charts (1947,
-  1994, 2000, 2026 Delhi); `pytest` replays them end-to-end:
+- `scripts/crosscheck_*.py` compare every module against [PyJHora](https://github.com/naturalstupid/PyJHora) as an independent oracle (dev-only). All vargas, dasha boundaries, panchang elements, Ashtakavarga tables, and the exactly-comparable Shadbala components match; known PyJHora defects in paksha/dig/cheshta/hora/ayana handling follow canon instead (see module docstrings).
+- `tests/reference_charts/fixtures.json` pins four reference charts (1947, 1994, 2000, 2026 Delhi); `pytest` replays them end-to-end:
 
 ```bash
 conda run -n openjyotish python -m pytest tests/ -q
 ```
+
+---
 
 ## Scope notes
 
@@ -134,11 +141,6 @@ conda run -n openjyotish python -m pytest tests/ -q
 
 ## License
 
-AGPL-3.0-or-later. Swiss Ephemeris is AGPL/commercial dual-licensed; this
-project uses it under the AGPL and carries the license forward. Hosting the
-MCP server as a network service triggers AGPL's network clause (source
-disclosure to users of the service).
+AGPL-3.0-or-later. Swiss Ephemeris is AGPL/commercial dual-licensed; this project uses it under the AGPL and carries the license forward. Hosting the MCP server as a network service triggers AGPL’s network clause (source disclosure to users of the service).
 
-Data attributions: Swiss Ephemeris `.se1` files © Astrodienst / Alois
-Treindl (AGPL); GeoNames `cities.csv` © GeoNames (CC BY 4.0) — see
-`openjyotish/data/gazetteer/README.md`.
+Data attributions: Swiss Ephemeris `.se1` files © Astrodienst / Alois Treindl (AGPL); GeoNames `cities.csv` © GeoNames (CC BY 4.0) — see `openjyotish/data/gazetteer/README.md`.
