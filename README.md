@@ -49,7 +49,7 @@ openjyotish --version
 }
 ```
 
-Restart Claude, look for the 🔧 wrench. Ask:
+Restart Claude — a tools icon (hammer/wrench) appears at the bottom of the chat input. Click it to confirm the server's tools are loaded, then ask:
 
 > “I was born 1994-03-21 14:32 in Nashik, India — what’s my Lagna, nakshatra, D9 and current Mahadasha?”
 
@@ -59,13 +59,13 @@ This resolves through `geocode_location` → `get_natal_chart` → `get_division
 
 ## Conventions
 
-Locked for v1 and reported in every response’s `conventions_used` block:
+Reported in every response’s `conventions_used` block so you know exactly what was assumed:
 
 - **Zodiac:** sidereal, **Lahiri (Chitrapaksha)** ayanamsha by default
 - **Houses:** whole-sign from the Lagna sign
-- **Dasha:** Vimshottari, year = 365.25 days
-- **Nodes:** true by default (`node_type: "mean"` available)
-- **Positions:** apparent by default (`true_positions: true` for true positions)
+- **Dasha:** Vimshottari
+- **Nodes:** true by default
+- **Positions:** apparent by default
 - **Varas, tithis, etc.:** sunrise-anchored civil day
 
 ## Tools
@@ -135,12 +135,6 @@ conda run -n openjyotish python -m pytest tests/ -q
 ```
 
 ---
-
-## Scope notes
-
-- No interpretive rules, no predictions — a v2 rules corpus is planned on top.
-- Parashari baseline only in v1 (no KP/Jaimini/Nadi).
-- Stateless: nothing is stored or tracked.
 
 ## License
 
