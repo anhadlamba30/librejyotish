@@ -67,7 +67,6 @@ Once the tools are connected, paste any of these straight into Claude. Each one 
 
 > “Walk me through the big timing cycles in my life for the next 20 years.”
 
-> Every answer carries a `conventions_used` block (sidereal/Lahiri, whole-sign houses, Vimshottari). Ask the model to “quote the `conventions_used`” if you want the exact assumptions stated back to you.
 
 ---
 
