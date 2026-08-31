@@ -53,6 +53,24 @@ uv tool install openjyotish
 openjyotish --version
 ```
 
+## Example prompts
+
+Once the tools are connected, paste any of these straight into Claude. Each one resolves through the server’s tools — the text in **bold** is you; the model handles the rest.
+
+- **“I was born 1994-03-21 14:32 in Nashik, India. Tell me my Lagna, nakshatra, D9, and current Mahadasha — and what they mean in plain language.”** → `geocode_location` → `get_natal_chart` → `get_divisional_chart(D9)` → `get_vimshottari_dasha`.
+
+- **“Compare the charts of these three: A born 1988-06-14 09:20 in New York, B born 1991-11-02 18:45 in London, C born 1985-02-27 05:10 in Sydney. What do the Moon signs and D9s have in common?”** → a single `batch` runs all three charts + divisional charts in one call.
+
+- **“I’m picking a date to launch. Give me the next three auspicious windows this year from the panchang.”** → `get_panchang` across candidate dates (or a `batch` over a week of dates).
+
+- **“Show me the eclipse that will land on my natal Moon, and when.”** → `get_natal_chart` (for the Moon’s house) → `get_eclipses`.
+
+- **“Where in my chart is Saturn strongest for me as a writer?”** → `get_natal_chart` → `get_shadbala`, then let the model explain the `rupas` vs. required-strength comparison.
+
+- **“Walk me through the big timing cycles in my life for the next 20 years.”** → `get_vimshottari_dasha` with `levels=4` and a date-range filter.
+
+> Every answer carries a `conventions_used` block (sidereal/Lahiri, whole-sign houses, Vimshottari). Ask the model to “quote the `conventions_used`” if you want the exact assumptions stated back to you.
+
 ---
 
 ## Conventions
@@ -79,8 +97,11 @@ Reported in every response’s `conventions_used` block so you know exactly what
 | `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon (raw positions only) |
 | `get_eclipses` | birth input + optional as-of moment + `count` | next solar/lunar eclipses: exact event times, type, eclipse point (sidereal sign/nakshatra) and its house from natal Lagna & Moon |
 | `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit’s numbers as the `latitude`/`longitude` inputs above) |
+| `batch` | list of `{tool, arguments}` | run many charts/panchang/geocodes in one call — result per op, order preserved, one failure never discards the rest |
 
 All tools are stateless: JSON in, structured dict out. Errors are `{"error": {"type", "message"}}`. Every response includes an explicit `conventions_used` block.
+
+`batch` is the answer to "can't I just loop client-side?": a 20-chart comparison costs **one** model round-trip instead of 20, and a single bad input fails as an `error` entry without discarding the other 19 results — so you keep the deterministic server-side shared state (ephemeris files, gazetteer, ayanamsha resolution) and avoid N round trips of your own.
 
 ---
 
