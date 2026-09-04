@@ -15,7 +15,7 @@ from mcp.server.mcpserver import MCPServer
 try:
     from librejyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.1.1"
+    _pkg_version = "0.1.2"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 
@@ -31,7 +31,10 @@ server = MCPServer(
         "All outputs are sidereal (Lahiri ayanamsha unless overridden) with whole-sign "
         "houses. Every response includes a conventions_used block — quote it when citing "
         "results. All numbers are computed from Swiss Ephemeris; never recompute or "
-        "round-trip them yourself. Interpretation is your job; this server only computes."
+        "round-trip them yourself. Interpretation is your job; this server only computes. "
+        "Keep get_vimshottari_dasha compact: use the levels=2 default (or reference_"
+        "datetime_local for the current chain) and bound deeper levels with "
+        "start_date/end_date; unfiltered levels>=3 are clamped to levels=2 with a warning."
     ),
 )
 
@@ -211,17 +214,23 @@ def get_vimshottari_dasha(datetime_local: str, latitude: float, longitude: float
                           reference_datetime_local: str | None = None,
                           start_date: str | None = None,
                           end_date: str | None = None,
-                          levels: int = 3, ayanamsha: str = "lahiri",
+                          levels: int = 2, ayanamsha: str = "lahiri",
                           node_type: str = "true",
                           true_positions: bool = False) -> dict:
-    """Vimshottari dasha tree: mahadasha -> antardasha -> pratyantardasha (and
-    optionally sookshma) with start/end dates. If reference_datetime_local is
-    given, `current_periods` reports the chain running at that moment.
+    """Vimshottari dasha periods for the birth chart, compact by default.
 
-    levels: 1 = mahadasha only, 2 = + antardasha, 3 = + pratyantardasha,
-      4 = + sookshma. Lower levels shrink the response.
-    start_date, end_date: optional ISO-8601 date strings (e.g. '2025-01-01')
-      to filter the returned periods to those overlapping the range.
+    Always returns the mahadasha -> antardasha tree (~81 periods at the
+    levels=2 default). Pass reference_datetime_local (defaults to \"now\" in
+    the birth timezone) to also get `current_periods`, the chain running at
+    that moment. Prefer that over deep levels.
+
+    levels: 1 = mahadasha only, 2 = +antardasha (default), 3 = +pratyantardasha,
+      4 = +sookshma. levels>=3 balloon the response (~729 periods at levels=3);
+      ALWAYS bound them with start_date/end_date, otherwise the tool clamps to
+      levels=2 and warns. Use a tight window around the timeframe that matters.
+
+    start_date, end_date: ISO-8601 dates (e.g. '2025-01-01') that keep only
+      periods overlapping the range — not the whole 120-year span.
     node_type: 'true' or 'mean' (see get_natal_chart). true_positions: false
       (default) = apparent positions; true = geometric.
     """
@@ -233,15 +242,33 @@ def get_vimshottari_dasha(datetime_local: str, latitude: float, longitude: float
             ref = _parse_datetime(reference_datetime_local, "reference_datetime_local")
         start = _parse_date(start_date, "start_date") if start_date else None
         end = _parse_date(end_date, "end_date") if end_date else None
+
+        warnings = list(tz_warnings)
+        levels_returned = levels
+        if levels in (3, 4) and start is None and end is None:
+            levels_returned = 2
+            warnings.append(
+                "levels >= 3 without a start_date/end_date range would return "
+                "the full pratyantardasha tree (~729 periods at levels=3); "
+                "clamped to levels=2. Re-request with a date window around the "
+                "period you care about to see the deeper sub-periods.")
+
+        reference_is_default_now = ref is None
+        if ref is None:
+            ref = datetime.now(ZoneInfo(tz_name)).replace(tzinfo=None)
+
         result = dasha.build_vimshottari_dasha(naive_local, tz_name, lat, lon, aya,
                                                node_type=node_type,
                                                true_positions=true_positions,
-                                               levels=levels,
+                                               levels=levels_returned,
                                                reference_local=ref,
                                                start_date=start,
                                                end_date=end)
-        if tz_warnings:
-            result["warnings"] = tz_warnings
+        result["input"]["levels_requested"] = levels
+        result["input"]["levels_returned"] = levels_returned
+        result["input"]["reference_is_default_now"] = reference_is_default_now
+        if warnings:
+            result["warnings"] = warnings
         return result
     except (ValueError, TypeError) as exc:
         return _error("get_vimshottari_dasha", exc)

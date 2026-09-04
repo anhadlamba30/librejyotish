@@ -145,16 +145,20 @@ def build_vimshottari_dasha(
     ayanamsha: str | None = "lahiri",
     node_type: str = "true",
     true_positions: bool = False,
-    levels: int = 3,
+    levels: int = 2,
     reference_local: datetime | None = None,
     start_date: datetime | None = None,
     end_date: datetime | None = None,
 ) -> dict:
     """Vimshottari tree from the natal Moon, plus optional current chain.
 
-    `levels` controls nesting depth: 1 = mahadasha only, 2 = + antardasha,
-    3 = + pratyantardasha, 4 = + sookshma. Lower levels shrink the response for
-    callers that only need the coarse periods.
+    `levels` controls nesting depth: 1 = mahadasha only, 2 = + antardasha
+    (default), 3 = + pratyantardasha, 4 = + sookshma. Lower levels shrink the
+    response for callers that only need the coarse periods; prefer a shallow
+    `levels` plus `start_date`/`end_date` bounds over a deep, unfiltered tree.
+
+    When `reference_local` is given, `current_periods` reports the deepest
+    active chain at that moment (as deep as the built `levels` allow).
 
     Periods are emitted as their full absolute windows (a period running at
     birth shows its complete span, including time before birth); the entries

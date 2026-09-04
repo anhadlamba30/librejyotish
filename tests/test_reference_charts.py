@@ -67,7 +67,7 @@ def test_divisional_charts(label, division):
 def test_vimshottari_mahadashas(label):
     case = FIXTURES[label]
     naive, tz, lat, lon = _naive(case)
-    tree = dasha.build_vimshottari_dasha(naive, tz, lat, lon)
+    tree = dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=3)
     mds = tree["mahadashas"]
     exp = case["dasha_mahadashas"]
     assert len(mds) == len(exp) == 9
@@ -88,7 +88,7 @@ def test_vimshottari_mahadashas(label):
 def test_dasha_current_period(label):
     case = FIXTURES[label]
     naive, tz, lat, lon = _naive(case)
-    tree = dasha.build_vimshottari_dasha(naive, tz, lat, lon)
+    tree = dasha.build_vimshottari_dasha(naive, tz, lat, lon, levels=3)
     cur = dasha.find_current_period(tree, datetime(2026, 8, 22, 10, 15), tz)
     chain = [{"level": c["level"], "lord": c["lord"]} for c in cur["chain"]]
     assert chain == case["dasha_current_at_reference"]
@@ -120,6 +120,60 @@ def test_server_dasha_levels_via_tool():
     rbad = srv_mod.get_vimshottari_dasha(
         "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata", levels=0)
     assert "error" in rbad and rbad["error"]["type"] == "ValueError"
+
+
+def test_server_dasha_default_is_compact():
+    import server as srv_mod
+    r = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata")
+    assert "error" not in r
+    assert r["input"]["levels_requested"] == 2
+    assert r["input"]["levels_returned"] == 2
+    # levels=2 tree: mahadashas have antardashas, but antardashas have none.
+    for md in r["mahadashas"]:
+        for ad in md["sub_periods"]:
+            assert "sub_periods" not in ad
+
+
+def test_server_dasha_unfiltered_deep_levels_clamped():
+    import server as srv_mod
+    r = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata", levels=3)
+    assert "error" not in r
+    assert r["input"]["levels_requested"] == 3
+    assert r["input"]["levels_returned"] == 2
+    assert any("clamped to levels=2" in w for w in r.get("warnings", []))
+    for md in r["mahadashas"]:
+        for ad in md["sub_periods"]:
+            assert "sub_periods" not in ad
+
+
+def test_server_dasha_filtered_deep_levels_respected():
+    import server as srv_mod
+    r = srv_mod.get_vimshottari_dasha(
+        "1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata",
+        levels=3, start_date="2026-01-01", end_date="2030-12-31")
+    assert "error" not in r
+    assert r["input"]["levels_requested"] == 3
+    assert r["input"]["levels_returned"] == 3
+    assert not any("clamped to levels=2" in w for w in r.get("warnings", []))
+    assert any("sub_periods" in ad for md in r["mahadashas"] for ad in md["sub_periods"])
+
+
+def test_server_dasha_reference_defaults_now():
+    import server as srv_mod
+    birth = ("1994-03-21T14:30:00", 19.99, 73.79, "Asia/Kolkata")
+    r = srv_mod.get_vimshottari_dasha(*birth)
+    assert "error" not in r
+    assert r["input"]["reference_is_default_now"] is True
+    assert r["current_periods"]["chain"]  # always present
+    for c in r["current_periods"]["chain"]:
+        assert c["level"] in ("mahadasha", "antardasha")  # levels=2 depth
+
+    rex = srv_mod.get_vimshottari_dasha(
+        *birth, reference_datetime_local="2026-08-22T10:15:00")
+    assert rex["input"]["reference_is_default_now"] is False
+    assert rex["current_periods"]["reference_local"] == "2026-08-22T10:15:00"
 
 
 @pytest.mark.parametrize("label", sorted(FIXTURES))

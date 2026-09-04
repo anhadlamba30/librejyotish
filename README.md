@@ -87,7 +87,7 @@ Reported in every response’s `conventions_used` block so you know exactly what
 | --- | --- | --- |
 | `get_natal_chart` | birth datetime + location | ascendant, planets with sign/nakshatra/house, retrograde & combustion flags, dignities |
 | `get_divisional_chart` | + `division` (`D1`–`D60`) | varga sign & house per body (Parashara rules incl. classical Trimshamsha) |
-| `get_vimshottari_dasha` | birth input (+ optional reference moment) | mahadasha → antardasha → pratyantardasha tree, current chain annotated |
+| `get_vimshottari_dasha` | birth input; optional `reference_datetime_local` (defaults to now), `start_date`/`end_date` bounds, `levels` | mahadasha → antardasha tree by default (`levels=2`); `current_periods` current chain always included; deeper levels (3/4) only with a date window |
 | `get_panchang` | date + location | tithi, vara, nakshatra/pada, yoga, karana, sunrise/sunset |
 | `get_ashtakavarga` | birth input | Bhinnashtakavarga per planet (with prastara), Sarvashtakavarga totals |
 | `get_shadbala` | birth input | six-fold strength: sthana, dig, kala, cheshta, naisargika, drik; virupas/rupas vs required |
@@ -104,6 +104,8 @@ All tools are stateless: JSON in, structured dict out. Errors are `{"error": {"t
 
 The server greets a sketchy input with a warning rather than a silently wrong chart. It flags an internally inconsistent date/time/location (e.g. a timezone that doesn't match the coordinates, or coordinates that resolve to a place 500+ km away, producing a sunset before sunrise) and tells you exactly what to fix. Use the top `geocode_location` candidate's numbers and strip stray guesses — the tools will catch the rest.
 
+Dasha responses are bounded so a model can't blow up its own context: `get_vimshottari_dasha` defaults to `levels=2` (mahadasha + antardasha, ~81 periods) and `reference_datetime_local` to now, so the usual "what's running now?" query gets the current chain without asking. A `levels>=3` call with no `start_date`/`end_date` range is clamped to `levels=2` with a warning telling the model how to get the deeper periods — passing a date window around the timeframe you actually need.
+
 ### Limitations
 
 - **Gazetteer covers cities ≥ 20k population.** `geocode_location` resolves against a generously-sourced but deliberately-shipped-down GeoNames subset, so obscure small towns and villages won't resolve — and in this domain a lot of birthplaces are villages. If an exact hit isn't found, the tool reports `resolved: false` with the searched string echoed back; treat that as "resolve the coordinates yourself and pass them directly" rather than a bug.
@@ -116,7 +118,7 @@ The server greets a sketchy input with a warning rather than a silently wrong ch
 **Install the CLI directly (any machine):**
 
 ```bash
-uvx librejyotish --version      # prints 0.1.1
+uvx librejyotish --version      # prints 0.1.2
 uvx librejyotish                # runs the MCP server over stdio
 # or install permanently:
 uv tool install librejyotish

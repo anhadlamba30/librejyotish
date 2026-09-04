@@ -62,7 +62,8 @@ def build_case(label, iso_local, tz_name, lat, lon, ref_iso):
 
     tree = dasha.build_vimshottari_dasha(
         naive, tz_name, lat, lon,
-        reference_local=datetime.fromisoformat(ref_iso) if ref_iso else None)
+        reference_local=datetime.fromisoformat(ref_iso) if ref_iso else None,
+        levels=3)
     md_out = []
     for md in tree["mahadashas"]:
         entry = {"lord": md["lord"],
