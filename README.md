@@ -26,7 +26,7 @@
          width="85%" alt="LibreJyotish demo: one chat prompt resolving a natal chart, dasha and panchang through the MCP tools">
   </a>
   <br>
-  <em>Real session: one prompt in — natal chart, Vimshottari dasha and panchang out, computed server-side by Swiss Ephemeris.</em>
+  <em>A demo prompt in Claude — resolved through LibreJyotish.</em>
 </p>
 
 ---
