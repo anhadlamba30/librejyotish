@@ -21,15 +21,10 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/anhadlamba30/librejyotish/raw/master/assets/demo.mp4"
-         controls muted playsinline
-         poster="https://github.com/anhadlamba30/librejyotish/raw/master/assets/demo-poster.png"
-         width="85%">
-    <a href="https://github.com/anhadlamba30/librejyotish/raw/master/assets/demo.mp4">
-      <img src="https://github.com/anhadlamba30/librejyotish/raw/master/assets/demo-poster.png"
-           width="85%" alt="LibreJyotish demo: one chat prompt resolving a natal chart, dasha and panchang through the MCP tools">
-    </a>
-  </video>
+  <a href="https://github.com/anhadlamba30/librejyotish/raw/master/assets/demo.mp4">
+    <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/demo.gif"
+         width="85%" alt="LibreJyotish demo: one chat prompt resolving a natal chart, dasha and panchang through the MCP tools">
+  </a>
   <br>
   <em>Real session: one prompt in — natal chart, Vimshottari dasha and panchang out, computed server-side by Swiss Ephemeris.</em>
 </p>
