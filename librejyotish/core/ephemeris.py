@@ -54,6 +54,53 @@ HOUSE_SYSTEMS = {
 _ephemeris_source: str | None = None
 
 
+# The bundled sepl_18.se1 / semo_18.se1 files cover 1800-01-01 through
+# 2399-12-31. Queries outside that window silently degrade: Swiss falls back
+# to Moshier theory even when FLG_SWIEPH was requested (visible in the
+# calc_ut return flags), so we reject them loudly instead of returning
+# mislabelled low-precision positions.
+EPHEMERIS_MIN_YEAR = 1800
+EPHEMERIS_MAX_YEAR = 2399
+EPHEMERIS_MIN_JD = swe.julday(EPHEMERIS_MIN_YEAR, 1, 1, 0.0)
+EPHEMERIS_MAX_JD = swe.julday(EPHEMERIS_MAX_YEAR + 1, 1, 1, 0.0)  # exclusive
+
+
+class EphemerisRangeError(ValueError):
+    """Raised when a Julian Day falls outside the bundled .se1 coverage."""
+
+
+def require_coverage(jd: float, label: str = "date") -> float:
+    """Raise EphemerisRangeError if `jd` is outside the bundled file coverage.
+
+    Checked eagerly so D60 / transit / eclipse queries centuries out fail
+    with a clean error instead of silently returning Moshier-theory
+    positions labelled as Swiss Ephemeris.
+    """
+    if not (EPHEMERIS_MIN_JD <= jd < EPHEMERIS_MAX_JD):
+        y, m, d, _h = swe.revjul(jd)
+        raise EphemerisRangeError(
+            f"{label} {int(y):04d}-{int(m):02d}-{int(d):02d} (JD {jd:.2f}) is "
+            f"outside the bundled Swiss Ephemeris coverage "
+            f"{EPHEMERIS_MIN_YEAR}-01-01..{EPHEMERIS_MAX_YEAR}-12-31 "
+            f"(sepl_18.se1/semo_18.se1). Refusing to return degraded "
+            f"Moshier-theory positions."
+        )
+    return jd
+
+
+def _check_swiss_flag(retflag: int, jd: float) -> None:
+    """Raise if Swiss was requested but the return flags show Moshier fallback."""
+    if _ephemeris_source == "swiss_ephemeris_data_files":
+        if (retflag & swe.FLG_MOSEPH) and not (retflag & swe.FLG_SWIEPH):
+            y, m, d, _h = swe.revjul(jd)
+            raise EphemerisRangeError(
+                f"date {int(y):04d}-{int(m):02d}-{int(d):02d} (JD {jd:.2f}) fell "
+                f"back to Moshier theory (no Swiss data for this date). "
+                f"Bundled coverage is {EPHEMERIS_MIN_YEAR}-01-01.."
+                f"{EPHEMERIS_MAX_YEAR}-12-31."
+            )
+
+
 def _resolve_ephe_path() -> str:
     return str(EPHE_PATH.resolve())
 
@@ -156,7 +203,11 @@ def planet_positions(
     what most software including astro.com reports.
 
     Returns {planet: {"longitude": deg, "speed": deg/day, "retrograde": bool}}
+
+    Raises EphemerisRangeError when `jd` is outside the bundled .se1 coverage
+    instead of silently returning degraded Moshier-theory positions.
     """
+    require_coverage(jd)
     key, mode, _ = resolve_ayanamsha(ayanamsha)
     swe.set_sid_mode(mode)
     node_key = node_type.lower()
@@ -170,7 +221,8 @@ def planet_positions(
     out: dict = {}
     flags = _flags(true_positions)
     for name, body in bodies.items():
-        pos, _rf = swe.calc_ut(jd, body, flags)
+        pos, retflag = swe.calc_ut(jd, body, flags)
+        _check_swiss_flag(retflag, jd)
         lon, speed = pos[0], pos[3]
         retro = (speed < 0) if name not in ("Rahu", "Ketu") else True
         out[name] = {
@@ -197,6 +249,7 @@ def ascendant_and_mc(
     true_positions: bool = False,
 ) -> tuple[float, float]:
     """Sidereal Ascendant and MC longitudes for the given time/place."""
+    require_coverage(jd)
     key, mode, _ = resolve_ayanamsha(ayanamsha)
     swe.set_sid_mode(mode)
     if house_system not in HOUSE_SYSTEMS:
@@ -221,6 +274,7 @@ def bhava_cusps(
     Used only by Shadbala's Dig Bana, which is defined against actual bhava
     madhya (cusp) longitudes rather than whole-sign houses.
     """
+    require_coverage(jd)
     key, mode, _ = resolve_ayanamsha(ayanamsha)
     swe.set_sid_mode(mode)
     cusps, _ascmc = swe.houses_ex(jd, latitude, longitude, b"P", _flags(true_positions))
@@ -237,8 +291,11 @@ def sunrise_sunset(
 
     Returns {"sunrise": iso_or_None, "sunset": iso_or_None} in local time;
     None where the event does not occur (polar day/night).
+
+    Raises EphemerisRangeError outside the bundled 1800-2399 coverage.
     """
     jd_start = to_jd(datetime(local_date.year, local_date.month, local_date.day, 0, 0), tz_name)
+    require_coverage(jd_start, label="panchang date")
     geopos = (longitude, latitude, 0.0)
     result = {}
     for label, flag in (

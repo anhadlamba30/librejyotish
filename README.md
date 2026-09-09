@@ -118,7 +118,7 @@ Dasha responses are bounded so a model can't blow up its own context: `get_vimsh
 ### Limitations
 
 - **Gazetteer covers cities ≥ 20k population.** `geocode_location` resolves against a generously-sourced but deliberately-shipped-down GeoNames subset, so obscure small towns and villages won't resolve — and in this domain a lot of birthplaces are villages. If an exact hit isn't found, the tool reports `resolved: false` with the searched string echoed back; treat that as "resolve the coordinates yourself and pass them directly" rather than a bug.
-- **Ephemeris spans 1800–2399** (the bundled Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` files). Births outside that range fall back to the built-in Moshier model, which is reported in `ephemeris_source`.
+- **Ephemeris spans 1800–2399** (the bundled Swiss Ephemeris `sepl_18.se1`/`semo_18.se1` files). Dates outside that range return a clean `EphemerisRangeError` instead of silently degraded Moshier-theory positions.
 
 ---
 

@@ -351,7 +351,9 @@ def _ayana_bala(jd_ut: float, flags: int) -> dict[str, float]:
               "Mercury": swe.MERCURY, "Jupiter": swe.JUPITER,
               "Venus": swe.VENUS, "Saturn": swe.SATURN}
     for p, body in bodies.items():
-        pos, _rf = swe.calc_ut(jd_ut, body, flags | swe.FLG_EQUATORIAL)
+        ep.require_coverage(jd_ut, label="shadbala date")
+        pos, retflag = swe.calc_ut(jd_ut, body, flags | swe.FLG_EQUATORIAL)
+        ep._check_swiss_flag(retflag, jd_ut)
         dec = pos[1]
         v = 30.0 + sign_by_planet[p] * dec * 1.25
         out[p] = round(min(60.0, max(0.0, v)) * (2.0 if p == "Sun" else 1.0), 2)

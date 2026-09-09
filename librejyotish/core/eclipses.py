@@ -172,8 +172,12 @@ def next_eclipses(
     aya_key, _, _ = ep.resolve_ayanamsha(ayanamsha)
     flags = ep.flags(true_positions)
     jd = ep.to_jd(start_local, tz_name)
+    ep.require_coverage(jd, label="as_of date")
     events = []
     while len(events) < count:
+        # If the forward search itself crosses past the bundled coverage,
+        # fail loudly instead of returning degraded Moshier-based times.
+        ep.require_coverage(jd, label="eclipse search date")
         try:
             lret, ltret = swe.lun_eclipse_when(jd, flags)
         except swe.Error:
