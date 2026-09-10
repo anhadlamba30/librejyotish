@@ -15,7 +15,7 @@ from mcp.server.mcpserver import MCPServer
 try:
     from librejyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.1.3"
+    _pkg_version = "0.1.4"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 from librejyotish.core.drishti import Drishti_CONVENTIONS, transit_to_natal_aspects

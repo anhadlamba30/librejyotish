@@ -12,7 +12,7 @@ def test_package_version_matches_server():
     import librejyotish
     import librejyotish.server as srv
 
-    assert librejyotish.__version__ == "0.1.3"
+    assert librejyotish.__version__ == "0.1.4"
     assert srv.server.version == librejyotish.__version__
 
 
@@ -22,7 +22,7 @@ def test_cli_version_flag():
         capture_output=True, text=True, timeout=5,
     )
     assert result.returncode == 0
-    assert "0.1.3" in result.stdout
+    assert "0.1.4" in result.stdout
 
 
 def test_bundled_data_available():
