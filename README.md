@@ -85,6 +85,7 @@ Reported in every response’s `conventions_used` block so you know exactly what
 
 - **Zodiac:** sidereal, **Lahiri (Chitrapaksha)** ayanamsha by default
 - **Houses:** whole-sign from the Lagna sign
+- **Aspects:** Parashari graha drishti, whole-sign, no orbs — all grahas aspect the 7th; Mars adds 4th/8th, Jupiter 5th/9th, Saturn 3rd/10th; Rahu/Ketu 7th only
 - **Dasha:** Vimshottari
 - **Nodes:** true by default
 - **Positions:** apparent by default
@@ -94,13 +95,13 @@ Reported in every response’s `conventions_used` block so you know exactly what
 
 | Tool | Input | Output |
 | --- | --- | --- |
-| `get_natal_chart` | birth datetime + location | ascendant, planets with sign/nakshatra/house, retrograde & combustion flags, dignities |
-| `get_divisional_chart` | + `division` (`D1`–`D60`) | varga sign & house per body (Parashara rules incl. classical Trimshamsha) |
+| `get_natal_chart` | birth datetime + location | ascendant, planets with sign/nakshatra/house, retrograde & combustion flags, dignities, graha-drishti aspects (casts/receives + target houses) |
+| `get_divisional_chart` | + `division` (`D1`–`D60`) | varga sign & house per body (Parashara rules incl. classical Trimshamsha), with varga aspects |
 | `get_vimshottari_dasha` | birth input; optional `reference_datetime_local` (defaults to now), `start_date`/`end_date` bounds, `levels` | mahadasha → antardasha tree by default (`levels=2`); `current_periods` current chain always included; deeper levels (3/4) only with a date window |
 | `get_panchang` | date + location | tithi, vara, nakshatra/pada, yoga, karana, sunrise/sunset |
 | `get_ashtakavarga` | birth input | Bhinnashtakavarga per planet (with prastara), Sarvashtakavarga totals |
 | `get_shadbala` | birth input | six-fold strength: sthana, dig, kala, cheshta, naisargika, drik; virupas/rupas vs required |
-| `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon (raw positions only) |
+| `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon, plus aspects each transit casts on natal planets (raw positions only) |
 | `get_eclipses` | birth input + optional as-of moment + `count` | next solar/lunar eclipses: exact event times, type, eclipse point (sidereal sign/nakshatra) and its house from natal Lagna & Moon |
 | `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit’s numbers as the `latitude`/`longitude` inputs above) |
 | `batch` | list of `{tool, arguments}` | run many charts/panchang/geocodes in one call — result per op, order preserved, one failure never discards the rest |
