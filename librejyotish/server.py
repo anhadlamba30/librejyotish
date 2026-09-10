@@ -15,7 +15,7 @@ from mcp.server.mcpserver import MCPServer
 try:
     from librejyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.1.2"
+    _pkg_version = "0.1.3"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 
