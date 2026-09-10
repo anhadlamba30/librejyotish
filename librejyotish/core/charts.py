@@ -22,6 +22,7 @@ from .constants import (
     nakshatra_index,
     normalize_deg,
 )
+from .drishti import Drishti_CONVENTIONS, graha_drishti
 
 MAIN_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 ALL_GRAHAS = MAIN_PLANETS + ["Rahu", "Ketu"]
@@ -256,7 +257,16 @@ def build_natal_chart(
     positions = ep.planet_positions(jd, ayanamsha=aya_key, node_type=node_type,
                                     true_positions=true_positions)
     asc, mc = ep.ascendant_and_mc(jd, latitude, longitude, ayanamsha=aya_key,
-                                  true_positions=true_positions)
+                                   true_positions=true_positions)
+
+    rasi_signs = {name: int(normalize_deg(positions[name]["longitude"]) // 30)
+                  for name in ALL_GRAHAS}
+    rasi_houses = {name: _house_from_lagna(positions[name]["longitude"], asc)
+                   for name in ALL_GRAHAS}
+    drishti = graha_drishti(rasi_signs)
+    for v in drishti.values():
+        for c in v["casts"]:
+            c["target_house_from_lagna"] = rasi_houses[c["target"]]
 
     planets_out = []
     for name in ALL_GRAHAS:
@@ -273,6 +283,7 @@ def build_natal_chart(
             "house_from_lagna": _house_from_lagna(p["longitude"], asc),
             "combustion": combustion_of(name, positions),
             "dignity": dignity_of(name, p["longitude"]),
+            "aspects": drishti[name],
         }
         entry["nakshatra"].pop("index_zero_based", None)
         entry["nakshatra"].pop("fraction_elapsed", None)
@@ -297,6 +308,7 @@ def build_natal_chart(
                 "name": "Whole-sign houses from Lagna sign",
             },
             "dignity_basis": "sign-based with degree-specific moolatrikona",
+            "graha_drishti": Drishti_CONVENTIONS,
             "combustion_orbs_degrees": {
                 **COMBUSTION_ORBS,
                 **{"mercury_retro": COMBUSTION_ORBS_RETRO["Mercury"],
@@ -339,15 +351,30 @@ def build_divisional_chart(
                               node_type, true_positions)
     lagna_varga_sign, _ = varga_sign(spec, natal["ascendant"]["longitude"])
 
-    bodies = []
+    varga_signs = {}
+    varga_degs = {}
     for body in natal["planets"]:
         vs, vd = varga_sign(spec, body["longitude"])
+        varga_signs[body["name"]] = vs
+        varga_degs[body["name"]] = vd
+    varga_drishti = graha_drishti(varga_signs)
+    varga_houses = {name: (vs - lagna_varga_sign) % 12 + 1
+                    for name, vs in varga_signs.items()}
+    for v in varga_drishti.values():
+        for c in v["casts"]:
+            c["target_house_from_varga_lagna"] = varga_houses[c["target"]]
+
+    bodies = []
+    for body in natal["planets"]:
+        vs = varga_signs[body["name"]]
+        vd = varga_degs[body["name"]]
         bodies.append({
             "name": body["name"],
             "varga_sign_index": vs + 1,
             "varga_sign": SIGNS[vs],
             "degree_in_varga_sign": round(vd, 6),
             "house_from_varga_lagna": (vs - lagna_varga_sign) % 12 + 1,
+            "aspects": varga_drishti[body["name"]],
         })
 
     return {
@@ -365,6 +392,7 @@ def build_divisional_chart(
                 if spec.code == "D30" else "Traditional Parasara (BPHS)"
             ),
             "houses_in_varga": "whole-sign from the varga position of the natal Lagna",
+            "graha_drishti": Drishti_CONVENTIONS,
         },
         "lagna": {
             "varga_sign_index": lagna_varga_sign + 1,

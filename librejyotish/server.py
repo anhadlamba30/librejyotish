@@ -18,6 +18,7 @@ except ImportError:
     _pkg_version = "0.1.3"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
+from librejyotish.core.drishti import Drishti_CONVENTIONS, transit_to_natal_aspects
 
 server = MCPServer(
     name="librejyotish",
@@ -397,6 +398,15 @@ def get_current_transits(datetime_local: str, latitude: float, longitude: float,
                                                 true_positions=true_positions)
         aya_key, _, aya_label = ep.resolve_ayanamsha(ayanamsha)
 
+        natal_signs = {p["name"]: int(p["longitude"] // 30) for p in natal["planets"]}
+        natal_houses = {p["name"]: p["house_from_lagna"] for p in natal["planets"]}
+        transit_signs = {name: int(transit_positions[name]["longitude"] // 30)
+                         for name in charts.ALL_GRAHAS}
+        transit_hits = transit_to_natal_aspects(transit_signs, natal_signs)
+        for hits in transit_hits.values():
+            for h in hits:
+                h["target_house_from_lagna"] = natal_houses[h["target"]]
+
         bodies = []
         for name in charts.ALL_GRAHAS:
             t = transit_positions[name]
@@ -413,6 +423,7 @@ def get_current_transits(datetime_local: str, latitude: float, longitude: float,
                     t["longitude"], lagna_lon),
                 "house_from_natal_moon": charts.house_from_lagna(
                     t["longitude"], moon_lon),
+                "aspects_natal": transit_hits[name],
             })
 
         return {
@@ -442,6 +453,7 @@ def get_current_transits(datetime_local: str, latitude: float, longitude: float,
                     "lagna_sign": ep.sign_of(lagna_lon)["name"],
                     "moon_sign": ep.sign_of(moon_lon)["name"],
                 },
+                "graha_drishti": Drishti_CONVENTIONS,
                 "interpretation": "none — raw gochara positions only (v2 rules corpus)",
             },
             "transits": bodies,
