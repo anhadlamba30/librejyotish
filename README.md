@@ -2,10 +2,6 @@
   <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/hero.png" width="100%" alt="LibreJyotish hero: Vedic astrology computed like an instrument — sidereal positions, houses, dashas and panchang from the Swiss Ephemeris, exposed as MCP tools">
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/logo.png" width="180" alt="LibreJyotish logo">
-</p>
-
 <h1 align="center">LibreJyotish</h1>
 
 <p align="center">
