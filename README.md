@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/hero.png" width="100%" alt="LibreJyotish hero: Vedic astrology computed like an instrument — sidereal positions, houses, dashas and panchang from the Swiss Ephemeris, exposed as MCP tools">
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/anhadlamba30/librejyotish/master/assets/logo.png" width="180" alt="LibreJyotish logo">
 </p>
 
@@ -103,6 +107,8 @@ Reported in every response’s `conventions_used` block so you know exactly what
 | `get_shadbala` | birth input | six-fold strength: sthana, dig, kala, cheshta, naisargika, drik; virupas/rupas vs required |
 | `get_current_transits` | birth input + optional as-of moment | transit positions with house from natal Lagna and natal Moon, plus aspects each transit casts on natal planets (raw positions only) |
 | `get_eclipses` | birth input + optional as-of moment + `count` | next solar/lunar eclipses: exact event times, type, eclipse point (sidereal sign/nakshatra) and its house from natal Lagna & Moon |
+| `get_jaimini_padas` | birth input | all 12 Arudha Padas (A1 Arudha Lagna … A12 Upapada) with exception flags, Chara Karakas in 7- and 8-schemes, Karakamsha/Swamsha per scheme |
+| `get_saturn_periods` | birth input + optional reference moment + `lookback_years`/`lookahead_years` | Moon-relative Saturn periods with exact ranges: Sade Sati rising/peak/setting + Dhaiya 4th/8th, plus current status |
 | `geocode_location` | place string + optional `country` | offline gazetteer lookup → latitude/longitude/IANA-timezone candidates (use the top hit’s numbers as the `latitude`/`longitude` inputs above) |
 | `batch` | list of `{tool, arguments}` | run many charts/panchang/geocodes in one call — result per op, order preserved, one failure never discards the rest |
 
@@ -128,7 +134,7 @@ Dasha responses are bounded so a model can't blow up its own context: `get_vimsh
 **Install the CLI directly (any machine):**
 
 ```bash
-uvx librejyotish --version      # prints 0.1.4
+uvx librejyotish --version      # prints 0.2.0
 uvx librejyotish                # runs the MCP server over stdio
 # or install permanently:
 uv tool install librejyotish

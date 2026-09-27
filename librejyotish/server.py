@@ -15,9 +15,10 @@ from mcp.server.mcpserver import MCPServer
 try:
     from librejyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.1.4"
+    _pkg_version = "0.2.0"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
+from librejyotish.core import jaimini, saturn_periods
 from librejyotish.core.drishti import Drishti_CONVENTIONS, transit_to_natal_aspects
 
 server = MCPServer(
@@ -26,7 +27,8 @@ server = MCPServer(
     title="LibreJyotish",
     description=(
         "Deterministic Vedic (Jyotish) astrology calculations: natal and divisional "
-        "charts, Vimshottari dasha, panchang, Ashtakavarga, Shadbala, transits."
+        "charts, Vimshottari dasha, panchang, Ashtakavarga, Shadbala, transits, "
+        "Jaimini padas/karakas, Saturn periods."
     ),
     instructions=(
         "All outputs are sidereal (Lahiri ayanamsha unless overridden) with whole-sign "
@@ -556,6 +558,79 @@ def get_eclipses(datetime_local: str, latitude: float, longitude: float,
 
 
 @server.tool()
+def get_jaimini_padas(datetime_local: str, latitude: float, longitude: float,
+                      timezone: str | None = None, ayanamsha: str = "lahiri",
+                      node_type: str = "true", true_positions: bool = False) -> dict:
+    """Jaimini factors: all 12 Arudha Padas (A1..A12), Chara Karakas, Karakamsha.
+
+    A1 is the Arudha Lagna (AL, public image); A12 is the Upapada (UL,
+    marriage). Also returns the Chara Karaka ranking in both the 7-karaka
+    (Parashara) and 8-karaka (Jaimini, Rahu counted backwards) schemes plus
+    the Karakamsha/Swamsha (Atmakaraka's Navamsha sign) for each scheme.
+
+    datetime_local: ISO-8601 naive local birth datetime, e.g. '1994-03-21T14:32:00'.
+    timezone: IANA zone name; when omitted it is derived from the coordinates.
+    node_type: 'true' or 'mean' — matters here only for the 8-karaka ranking
+      (Rahu's longitude); padas are whole-sign and unaffected.
+    true_positions: false (default) = apparent positions; true = geometric.
+    """
+    try:
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
+            datetime_local, timezone, latitude, longitude, ayanamsha)
+        if node_type not in ("true", "mean"):
+            raise ValueError("node_type must be 'true' or 'mean'")
+        result = jaimini.build_jaimini(naive_local, tz_name, lat, lon, aya,
+                                       node_type=node_type,
+                                       true_positions=true_positions)
+        if tz_warnings:
+            result["warnings"] = tz_warnings + result.get("warnings", [])
+        return result
+    except (ValueError, TypeError) as exc:
+        return _error("get_jaimini_padas", exc)
+
+
+@server.tool()
+def get_saturn_periods(datetime_local: str, latitude: float, longitude: float,
+                       timezone: str | None = None,
+                       reference_datetime_local: str | None = None,
+                       lookback_years: float = 2.0,
+                       lookahead_years: float = 30.0,
+                       ayanamsha: str = "lahiri",
+                       true_positions: bool = False) -> dict:
+    """Moon-relative Saturn transit periods with exact date ranges.
+
+    Sade Sati (Saturn in the 12th/rising, 1st/peak, 2nd/setting from the natal
+    Moon) plus Dhaiya (4th/Ardhashtama-Kantaka, 8th/Ashtama). Returns the
+    current status at the reference moment plus every period in the scan
+    window — raw date ranges only, no favorable/unfavorable judgment.
+
+    datetime_local: ISO-8601 naive local birth datetime. timezone: IANA zone
+      name; when omitted it is derived from the coordinates.
+    reference_datetime_local defaults to now in `timezone`. lookback_years /
+      lookahead_years bound the scan (defaults 2 / 30 — about one full Saturn
+      cycle ahead); each must be within [0, 120].
+    There is no node_type parameter: Rahu/Ketu are unused here. ayanamsha and
+      true_positions thread through to both the natal Moon and Saturn.
+    """
+    try:
+        naive_local, tz_name, lat, lon, aya, tz_warnings = _common_inputs(
+            datetime_local, timezone, latitude, longitude, ayanamsha)
+        if reference_datetime_local is None:
+            ref = datetime.now(ZoneInfo(tz_name)).replace(tzinfo=None)
+        else:
+            ref = _parse_datetime(reference_datetime_local, "reference_datetime_local")
+        result = saturn_periods.build_saturn_periods(
+            naive_local, tz_name, lat, lon, aya,
+            true_positions=true_positions, reference_local=ref,
+            lookback_years=lookback_years, lookahead_years=lookahead_years)
+        if tz_warnings:
+            result["warnings"] = tz_warnings
+        return result
+    except (ValueError, TypeError) as exc:
+        return _error("get_saturn_periods", exc)
+
+
+@server.tool()
 def geocode_location(place: str, country: str | None = None,
                      limit: int = 5) -> dict:
     """Offline place-string lookup for use with the computation tools.
@@ -594,6 +669,8 @@ _BATCHABLE = {
     "get_shadbala": get_shadbala,
     "get_current_transits": get_current_transits,
     "get_eclipses": get_eclipses,
+    "get_jaimini_padas": get_jaimini_padas,
+    "get_saturn_periods": get_saturn_periods,
     "geocode_location": geocode_location,
 }
 
@@ -608,7 +685,8 @@ def batch(operations: list[dict]) -> dict:
     operations: a list of {"tool": <name>, "arguments": {<param>: value}}.
     Supported tool names: get_natal_chart, get_divisional_chart,
       get_vimshottari_dasha, get_panchang, get_ashtakavarga, get_shadbala,
-      get_current_transits, get_eclipses, geocode_location. Each `arguments`
+      get_current_transits, get_eclipses, get_jaimini_padas, get_saturn_periods,
+      geocode_location. Each `arguments`
       dict is the same set of parameters that tool normally takes.
 
     Every result is the same structured dict that tool would return alone. A

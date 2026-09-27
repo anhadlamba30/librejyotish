@@ -101,6 +101,11 @@ def _check_swiss_flag(retflag: int, jd: float) -> None:
             )
 
 
+def check_swiss_flag(retflag: int, jd: float) -> None:
+    """Raise if Swiss was requested but return flags show Moshier fallback."""
+    _check_swiss_flag(retflag, jd)
+
+
 def _resolve_ephe_path() -> str:
     return str(EPHE_PATH.resolve())
 

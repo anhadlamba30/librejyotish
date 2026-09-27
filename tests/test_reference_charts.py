@@ -234,7 +234,8 @@ def test_server_registers_all_tools():
     assert names == {
         "get_natal_chart", "get_divisional_chart", "get_vimshottari_dasha",
         "get_panchang", "get_ashtakavarga", "get_shadbala",
-        "get_current_transits", "get_eclipses", "geocode_location", "batch"}
+        "get_current_transits", "get_eclipses", "get_jaimini_padas",
+        "get_saturn_periods", "geocode_location", "batch"}
 
 
 def test_server_tool_error_paths():

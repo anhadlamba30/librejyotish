@@ -12,7 +12,7 @@ def test_package_version_matches_server():
     import librejyotish
     import librejyotish.server as srv
 
-    assert librejyotish.__version__ == "0.1.4"
+    assert librejyotish.__version__ == "0.2.0"
     assert srv.server.version == librejyotish.__version__
 
 
@@ -22,7 +22,7 @@ def test_cli_version_flag():
         capture_output=True, text=True, timeout=5,
     )
     assert result.returncode == 0
-    assert "0.1.4" in result.stdout
+    assert "0.2.0" in result.stdout
 
 
 def test_bundled_data_available():
@@ -72,6 +72,17 @@ def test_all_tools_smoke():
     r9 = srv.geocode_location("Nashik, India")
     assert "error" not in r9
     assert r9["resolved"]
+
+    r10 = srv.get_jaimini_padas(**birth)
+    assert "error" not in r10
+    assert r10["arudha_lagna"]["pada"] == "A1"
+    assert r10["upapada"]["pada"] == "A12"
+
+    r11 = srv.get_saturn_periods(
+        **birth, reference_datetime_local="2026-01-01T12:00:00",
+        lookback_years=1, lookahead_years=2)
+    assert "error" not in r11
+    assert "current_status" in r11 and "periods" in r11
 
 
 def test_entry_point_importable():
