@@ -130,7 +130,7 @@ Dasha responses are bounded so a model can't blow up its own context: `get_vimsh
 **Install the CLI directly (any machine):**
 
 ```bash
-uvx librejyotish --version      # prints 0.2.0
+uvx librejyotish --version      # prints 0.2.1
 uvx librejyotish                # runs the MCP server over stdio
 # or install permanently:
 uv tool install librejyotish

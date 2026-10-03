@@ -48,6 +48,35 @@ PADA_NAMES = [
     "Upapada",         # A12 (Vyaya Pada)
 ]
 
+# Static definitional glosses per pada (what the pada reflects outwardly).
+# Same status as varga `significations`: labels, not interpretive judgment.
+PADA_SIGNIFIES = [
+    "public image, worldly status, how the self appears",
+    "wealth, assets and family resources as seen outwardly",
+    "courage, initiative, siblings",
+    "mother, home, comforts and property",
+    "children, intellect, counsel and devotion",
+    "disease, enemies, litigation and service",
+    "spouse and partners, romance, business partnerships",
+    "longevity, crises and hidden matters",
+    "father, dharma, fortune and mentors",
+    "career, public deeds and reputation",
+    "gains, networks and elder siblings",
+    "marriage and committed union",
+]
+
+# Static definitional glosses per karaka role.
+KARAKA_SIGNIFIES = {
+    "Atmakaraka": "soul, self",
+    "Amatyakaraka": "career, advisor",
+    "Bhratrukaraka": "siblings",
+    "Matrukaraka": "mother",
+    "Pitrukaraka": "father",
+    "Putrakaraka": "children",
+    "Gnatikaraka": "rivals, strife",
+    "Darakaraka": "spouse",
+}
+
 KARAKA_PLANETS_7 = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 
 SEVEN_KARAKA_ROLES = [
@@ -120,9 +149,13 @@ def all_arudha_padas(lagna_sign: int, graha_signs: dict[str, int]) -> list[dict]
         lord_sign = graha_signs[lord] % 12
         calc = arudha_pada(house_sign, lord_sign)
         pada = calc["pada_sign_index"]
+        # Result-first field order: where the pada lands, then how it was derived.
         padas.append({
             "pada": f"A{house}",
             "name": PADA_NAMES[house - 1],
+            "signifies": PADA_SIGNIFIES[house - 1],
+            "pada_sign": SIGNS[pada],
+            "pada_house_from_lagna": (pada - lagna_sign) % 12 + 1,
             "house": house,
             "house_sign": SIGNS[house_sign],
             "lord": lord,
@@ -130,8 +163,6 @@ def all_arudha_padas(lagna_sign: int, graha_signs: dict[str, int]) -> list[dict]
             "count": calc["count"],
             "raw_sign": SIGNS[calc["raw_sign_index"]],
             "exception_applied": calc["exception_applied"],
-            "pada_sign": SIGNS[pada],
-            "pada_house_from_lagna": (pada - lagna_sign) % 12 + 1,
         })
     return padas
 
@@ -171,9 +202,10 @@ def chara_karakas(longitudes: dict[str, float], scheme: str = "seven") -> dict:
 
     return {
         "scheme": scheme,
-        "roles": roles,
         "karakas": [
-            {"role": role, "planet": planet, "degree_in_sign": round(deg, 6)}
+            {"role": role, "planet": planet,
+             "signifies": KARAKA_SIGNIFIES[role],
+             "degree_in_sign": round(deg, 6)}
             for (planet, deg), role in zip(ranked, roles)
         ],
         "warnings": warnings,

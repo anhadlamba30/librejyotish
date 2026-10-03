@@ -15,7 +15,7 @@ from mcp.server.mcpserver import MCPServer
 try:
     from librejyotish import __version__ as _pkg_version
 except ImportError:
-    _pkg_version = "0.2.0"
+    _pkg_version = "0.2.1"
 
 from librejyotish.core import charts, dasha, eclipses, ephemeris as ep, geocode, panchang
 from librejyotish.core import jaimini, saturn_periods
@@ -567,6 +567,11 @@ def get_jaimini_padas(datetime_local: str, latitude: float, longitude: float,
     marriage). Also returns the Chara Karaka ranking in both the 7-karaka
     (Parashara) and 8-karaka (Jaimini, Rahu counted backwards) schemes plus
     the Karakamsha/Swamsha (Atmakaraka's Navamsha sign) for each scheme.
+
+    READING A PADA: `pada_sign` / `pada_house_from_lagna` is where the pada
+    LANDS — that is the placement to use. `house` / `house_sign` is the SOURCE
+    house the pada was derived from, not its location. Never report `house`
+    as the pada's position.
 
     datetime_local: ISO-8601 naive local birth datetime, e.g. '1994-03-21T14:32:00'.
     timezone: IANA zone name; when omitted it is derived from the coordinates.

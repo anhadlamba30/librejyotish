@@ -80,8 +80,11 @@ def test_eight_karaka_rahu_reversed():
     rahu = next(k for k in table["karakas"] if k["planet"] == "Rahu")
     assert rahu["degree_in_sign"] == pytest.approx(25.0)
     assert rahu["role"] == "Atmakaraka"  # 25.0 beats everything else here
+    assert rahu["signifies"] == "soul, self"
     assert len(table["karakas"]) == 8
-    assert "Pitrukaraka" in table["roles"]
+    assert "roles" not in table  # roles live on each entry, not as a separate array
+    assert [k["role"] for k in table["karakas"]] == jm.EIGHT_KARAKA_ROLES
+    assert next(k for k in table["karakas"] if k["role"] == "Pitrukaraka")["signifies"] == "father"
 
 
 def test_karaka_tie_warns():
@@ -106,6 +109,11 @@ def test_build_jaimini_end_to_end():
     assert result["arudha_lagna"] == result["arudha_padas"][0]
     assert result["upapada"]["pada"] == "A12"
     assert result["upapada"] == result["arudha_padas"][11]
+    assert result["upapada"]["signifies"] == "marriage and committed union"
+    assert result["arudha_padas"][9]["signifies"] == "career, public deeds and reputation"
+    # Result-first field order: placement fields lead each pada entry.
+    assert list(result["arudha_padas"][0])[:5] == [
+        "pada", "name", "signifies", "pada_sign", "pada_house_from_lagna"]
     # Pada houses are whole-sign from the Lagna sign.
     lagna_idx = SIGNS.index(result["lagna_sign"])
     for entry in result["arudha_padas"]:
